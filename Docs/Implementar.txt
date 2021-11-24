@@ -1,0 +1,4 @@
+Lavagem dos veiculos
+ Le o qrcode
+ Informa data e hora observação
+foto Interna e Externa do veiculo
