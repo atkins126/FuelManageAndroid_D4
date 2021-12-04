@@ -1,7 +1,7 @@
 object dmDB: TdmDB
   OldCreateOrder = False
-  Height = 403
-  Width = 663
+  Height = 390
+  Width = 694
   object qryControAcces: TFDQuery
     CachedUpdates = True
     Connection = FCon
@@ -32,9 +32,10 @@ object dmDB: TdmDB
   end
   object FCon: TFDConnection
     Params.Strings = (
-      'Database=D:\Projetos2021\FuelManageMobile\db\FuelM.db'
+      
+        'Database=D:\Projetos2021\FullManageAndroid\FuelManageAndroid_D4\' +
+        'db\Fueldb.db'
       'DriverID=SQLite')
-    Connected = True
     LoginPrompt = False
     BeforeConnect = FConBeforeConnect
     Left = 96
@@ -63,6 +64,14 @@ object dmDB: TdmDB
     object qryConfigSalvarLogin: TIntegerField
       FieldName = 'SalvarLogin'
       Origin = 'SalvarLogin'
+    end
+    object qryConfigID_CENTRO_CUSTO: TIntegerField
+      FieldName = 'ID_CENTRO_CUSTO'
+      Origin = 'ID_CENTRO_CUSTO'
+    end
+    object qryConfigPATRIMONIO: TIntegerField
+      FieldName = 'PATRIMONIO'
+      Origin = 'PATRIMONIO'
     end
   end
   object TAbastecimento: TFDQuery
@@ -237,6 +246,15 @@ object dmDB: TdmDB
       ProviderFlags = []
       ReadOnly = True
     end
+    object TAbastecimentoalerta: TIntegerField
+      FieldName = 'alerta'
+      Origin = 'alerta'
+    end
+    object TAbastecimentodescricaoalerta: TWideMemoField
+      FieldName = 'descricaoalerta'
+      Origin = 'descricaoalerta'
+      BlobType = ftWideMemo
+    end
   end
   object TAbastecimentoOutros: TFDQuery
     CachedUpdates = True
@@ -318,10 +336,12 @@ object dmDB: TdmDB
     CachedUpdates = True
     Connection = FCon
     SQL.Strings = (
-      'select c.*,p.nome combustivel from localestoque c '
+      'select '
+      ' c.*,'
+      ' p.nome combustivel '
+      'from localestoque c '
       'join produtos p on p.id=c.idcombustivel '
-      'where c.status=1'
-      'and c.idcentrocusto=1')
+      'where c.status=1')
     Left = 320
     Top = 304
     object TLocalEstoqueid: TIntegerField
@@ -774,6 +794,12 @@ object dmDB: TdmDB
       Required = True
       Size = 32767
     end
+    object TMaquinasvolumetanque: TBCDField
+      FieldName = 'volumetanque'
+      Origin = 'volumetanque'
+      Precision = 15
+      Size = 2
+    end
   end
   object qryAux: TFDQuery
     CachedUpdates = True
@@ -1004,33 +1030,39 @@ object dmDB: TdmDB
   end
   object TMovLocalEstoque: TFDQuery
     CachedUpdates = True
+    OnReconcileError = TMovLocalEstoqueReconcileError
     Connection = FCon
     SQL.Strings = (
-      'select * from tranferencialocalestoque')
+      'select '
+      ' a.*,'
+      ' o.nome LocalOrigem,'
+      ' d.nome LocalDestino,'
+      ' p.nome Produto'
+      'from tranferencialocalestoque a'
+      'left join localestoque o on o.id=a.idlocalestoqueorigem'
+      'left join localestoque d on d.id=a.idlocalestoquedetino'
+      'left join produtos p ON o.idcentrocusto=p.id '
+      'where a.status=1')
     Left = 568
     Top = 136
     object TMovLocalEstoqueid: TIntegerField
       FieldName = 'id'
       Origin = 'id'
       ProviderFlags = [pfInUpdate, pfInWhere, pfInKey]
-      Required = True
     end
     object TMovLocalEstoquestatus: TWideStringField
       FieldName = 'status'
       Origin = 'status'
-      Required = True
       Size = 32767
     end
     object TMovLocalEstoquedatareg: TWideStringField
       FieldName = 'datareg'
       Origin = 'datareg'
-      Required = True
       Size = 32767
     end
     object TMovLocalEstoqueidusuario: TWideStringField
       FieldName = 'idusuario'
       Origin = 'idusuario'
-      Required = True
       Size = 32767
     end
     object TMovLocalEstoquedataalteracao: TWideStringField
@@ -1046,19 +1078,16 @@ object dmDB: TdmDB
     object TMovLocalEstoqueidlocalestoqueorigem: TWideStringField
       FieldName = 'idlocalestoqueorigem'
       Origin = 'idlocalestoqueorigem'
-      Required = True
       Size = 32767
     end
     object TMovLocalEstoqueidlocalestoquedetino: TWideStringField
       FieldName = 'idlocalestoquedetino'
       Origin = 'idlocalestoquedetino'
-      Required = True
       Size = 32767
     end
     object TMovLocalEstoqueidproduto: TWideStringField
       FieldName = 'idproduto'
       Origin = 'idproduto'
-      Required = True
       Size = 32767
     end
     object TMovLocalEstoqueqtde: TBCDField
@@ -1070,18 +1099,39 @@ object dmDB: TdmDB
     object TMovLocalEstoquedatamov: TDateField
       FieldName = 'datamov'
       Origin = 'datamov'
-      Required = True
     end
     object TMovLocalEstoquehora: TTimeField
       FieldName = 'hora'
       Origin = 'hora'
-      Required = True
     end
     object TMovLocalEstoquesyncaws: TWideStringField
       FieldName = 'syncaws'
       Origin = 'syncaws'
-      Required = True
       Size = 32767
+    end
+    object TMovLocalEstoqueLocalOrigem: TStringField
+      AutoGenerateValue = arDefault
+      FieldName = 'LocalOrigem'
+      Origin = 'nome'
+      ProviderFlags = []
+      ReadOnly = True
+      Size = 50
+    end
+    object TMovLocalEstoqueLocalDestino: TStringField
+      AutoGenerateValue = arDefault
+      FieldName = 'LocalDestino'
+      Origin = 'nome'
+      ProviderFlags = []
+      ReadOnly = True
+      Size = 50
+    end
+    object TMovLocalEstoqueProduto: TStringField
+      AutoGenerateValue = arDefault
+      FieldName = 'Produto'
+      Origin = 'nome'
+      ProviderFlags = []
+      ReadOnly = True
+      Size = 50
     end
   end
   object TUsuario: TFDQuery

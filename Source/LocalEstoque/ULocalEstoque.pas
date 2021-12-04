@@ -59,7 +59,7 @@ implementation
 
 {$R *.fmx}
 
-uses UPrincipal, UDmDB, UAbastecimento, UStartBomba;
+uses UPrincipal, UDmDB, UAbastecimento, UStartBomba, UMovEstoque;
 
 procedure TfrmLocalEstoque.btnFecharClick(Sender: TObject);
 begin
@@ -87,11 +87,11 @@ if vIdLocalEstoque.Length=0 then
     frmStartBomba.edtData.DateTime).QuotedString;
    vFiltro := vFiltro+' and l.id='+vIdLocalEstoque;
    dmDB.AbrirStartBomba(vFiltro);
-   if not dmDB.TStartbomba.IsEmpty then
-   begin
-     ShowMessage('Já existe um start para esse Bomba nessa data!');
-     frmStartBomba.edtLocalEstoque.Text :='';
-   end;
+//   if not dmDB.TStartbomba.IsEmpty then
+//   begin
+//     ShowMessage('Já existe um start para esse Bomba nessa data!');
+//     frmStartBomba.edtLocalEstoque.Text :='';
+//   end;
    if not dmDB.VerificaStartAberto(vIdLocalEstoque) then
    begin
      ShowMessage('Existe um start em aberto para esse Bomba Finalize ante de iniciar!');
@@ -112,6 +112,24 @@ if vIdLocalEstoque.Length=0 then
     begin
       ShowMessage('É necessario realizar o Start Diario dessa Bomba antes de abastecer!');
       frmAbastecimento.edtLocalEstoque.Text :='';
+    end;
+  end;
+  if dmDB.vTipoOp=3 then
+  begin
+    if dmDB.vLocalMov=1 then //local origem
+    begin
+      frmMovEstoque.vIdLocalOrigem         := vIdLocalEstoque;
+      frmMovEstoque.vIdProduto             := vIdCombustivel;
+      frmMovEstoque.edtLocalOrigem.Text    := vNomeLocalEstoque;
+      frmMovEstoque.lblCombustivelO.Text   := vNomeCombustivel;
+      frmMovEstoque.layBombaOrigem.Height  := 125;
+    end;
+    if dmDB.vLocalMov=2 then //local Destino
+    begin
+      frmMovEstoque.vIdLocalDestino        := vIdLocalEstoque;
+      frmMovEstoque.edtLocalDestino.Text   := vNomeLocalEstoque;
+      frmMovEstoque.lblCombustivelD.Text   := vNomeCombustivel;
+      frmMovEstoque.layBombaDestino.Height := 125;
     end;
   end;
   Close;

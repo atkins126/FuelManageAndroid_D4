@@ -26,11 +26,9 @@ type
     layFiltros: TLayout;
     RecGro: TRectangle;
     Label1: TLabel;
-    edtNomeFiltro: TEdit;
-    edtPlacaF: TEdit;
+    edtQrCode: TEdit;
     edtPrefixoF: TEdit;
     Label14: TLabel;
-    lblPf: TLabel;
     SpeedButton1: TSpeedButton;
     layImg: TLayout;
     Rectangle6: TRectangle;
@@ -43,7 +41,6 @@ type
     ListaMaquinas: TListView;
     ClearEditButton1: TClearEditButton;
     ClearEditButton2: TClearEditButton;
-    ClearEditButton3: TClearEditButton;
     Rectangle1: TRectangle;
     imgLogoCad: TImage;
     Layout9: TLayout;
@@ -51,6 +48,13 @@ type
     LaybtnEntrar: TLayout;
     Label4: TLabel;
     Image1: TImage;
+    Rectangle17: TRectangle;
+    Image7: TImage;
+    Label23: TLabel;
+    btnBuscar: TRectangle;
+    Layout1: TLayout;
+    Label25: TLabel;
+    Image11: TImage;
     procedure btnFecharClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
@@ -58,9 +62,6 @@ type
     procedure btnSelecionarClick(Sender: TObject);
     procedure StringGrid1CellDblClick(const Column: TColumn;
       const Row: Integer);
-    procedure SpeedButton1Click(Sender: TObject);
-    procedure edtPrefixoFChangeTracking(Sender: TObject);
-    procedure edtNomeFiltroChangeTracking(Sender: TObject);
     procedure edtPlacaFChangeTracking(Sender: TObject);
     procedure ListaMaquinasItemClickEx(const Sender: TObject;
       ItemIndex: Integer; const LocalClickPos: TPointF;
@@ -68,6 +69,8 @@ type
     procedure ClearEditButton1Click(Sender: TObject);
     procedure ClearEditButton2Click(Sender: TObject);
     procedure ClearEditButton3Click(Sender: TObject);
+    procedure Rectangle17Click(Sender: TObject);
+    procedure btnBuscarClick(Sender: TObject);
   private
     procedure Filtro;
     procedure GeraListaMaquinas;
@@ -83,6 +86,11 @@ implementation
 {$R *.fmx}
 
 uses UPrincipal,UDmDB;
+
+procedure TfrmMaquinas.btnBuscarClick(Sender: TObject);
+begin
+  Filtro;
+end;
 
 procedure TfrmMaquinas.btnFecharClick(Sender: TObject);
 begin
@@ -119,25 +127,9 @@ begin
  Filtro;
 end;
 
-procedure TfrmMaquinas.edtNomeFiltroChangeTracking(Sender: TObject);
-begin
- Filtro
-end;
-
 procedure TfrmMaquinas.edtPlacaFChangeTracking(Sender: TObject);
 begin
  Filtro
-end;
-
-procedure TfrmMaquinas.edtPrefixoFChangeTracking(Sender: TObject);
-begin
- Filtro;
-end;
-
-
-procedure TfrmMaquinas.SpeedButton1Click(Sender: TObject);
-begin
-  Filtro;
 end;
 
 procedure TfrmMaquinas.StringGrid1CellDblClick(const Column: TColumn;
@@ -151,41 +143,17 @@ var
  vFiltrado:integer;
  vFiltro:string;
 begin
- vFiltrado :=0;
- dmdb.TMaquinas.Filtered := false;
- if edtNomeFiltro.Text.Length>0 then
+ with dmdb.TMaquinas,dmdb.TMaquinas.SQL do
  begin
-   vFiltrado :=1;
-   vFiltro := 'MODELO LIKE '+QuotedStr('%'+edtNomeFiltro.Text+'%');
- end;
- if edtPlacaF.Text.Length>0 then
- begin
-  if vFiltrado=0 then
-   vFiltro := 'PLACA LIKE '+QuotedStr('%'+edtPlacaF.Text+'%')
-  else
-   vFiltro := vFiltro+' AND PLACA LIKE'+QuotedStr('%'+edtPlacaF.Text+'%');
-   vFiltrado :=1;
- end;
- if edtPrefixoF.Text.Length>0 then
- begin
-  if vFiltrado=0 then
-   vFiltro := 'PREFIXO LIKE'+QuotedStr('%'+edtPrefixoF.Text+'%')
-  else
-   vFiltro := vFiltro+' and PREFIXO LIKE'+QuotedStr('%'+edtPrefixoF.Text+'%');
-  vFiltrado :=1;
- end;
- if vFiltrado=1 then
- begin
-  dmdb.TMaquinas.Filter   := vFiltro;
-  dmdb.TMaquinas.Filtered := true;
- end
- else
- begin
-   dmdb.TMaquinas.Filtered := false;
-   dmdb.TMaquinas.Close;
-   dmdb.TMaquinas.Open;
-   dmdb.TMaquinas.Filter   := vFiltro;
-   dmdb.TMaquinas.Filtered := true;
+   Clear;
+   Add('select * from maquinaveiculo');
+   Add('where 1=1');
+   if edtPrefixoF.Text.Length>0 then
+    Add('AND PREFIXO LIKE'+QuotedStr('%'+edtPrefixoF.Text+'%'));
+   if edtQrCode.Text.Length>0 then
+    Add('AND qrCode ='+edtQrCode.Text);
+   Add('ORDER BY PREFIXO');
+   Open;
  end;
  GeraListaMaquinas;
 end;
@@ -241,19 +209,19 @@ begin
              txt.Text := dmDb.TMaquinasprefixo.AsString;
 
              txt      := TListItemText(Objects.FindDrawable('Text9'));
-             txt.Text := 'Modelo:';
-
-             txt      := TListItemText(Objects.FindDrawable('Text7'));
-             txt.Text := dmDb.TMaquinasmodelo.AsString;
+             txt.Text := 'Modelo:'+dmDb.TMaquinasmodelo.AsString;
 
              txt      := TListItemText(Objects.FindDrawable('Text5'));
              txt.Text := 'Placa: '+dmDb.TMaquinasplaca.AsString;
 
              txt      := TListItemText(Objects.FindDrawable('Text4'));
-             txt.Text := 'Prefixo: '+dmDb.TMaquinasprefixo.AsString;
+             txt.Text := 'Qr Code: '+dmDb.TMaquinasqrcode.AsString;
+
+             txt      := TListItemText(Objects.FindDrawable('Text6'));
+             txt.Text := 'Volume(L) Tanque: '+dmDb.TMaquinasvolumetanque.AsString;
 
              img := TListItemImage(Objects.FindDrawable('Image14'));
-//             img.Bitmap     := frmPrincipal.imgMaquina.Bitmap;
+             img.Bitmap     := frmPrincipal.imgMaquina.Bitmap;
            end;
            dmDB.TMaquinas.Next;
          end;
@@ -276,6 +244,11 @@ begin
    ('Text7').Text+'-'+
    TAppearanceListViewItem(ListaMaquinas.Selected).Objects.FindObjectT<TListItemText>
    ('Text3').Text;
+end;
+
+procedure TfrmMaquinas.Rectangle17Click(Sender: TObject);
+begin
+ Close;
 end;
 
 end.

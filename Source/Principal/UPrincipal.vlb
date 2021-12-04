@@ -20,9 +20,6 @@ Coordinates=847,859,70,33
 [Layout36]
 Coordinates=118,308,59,33
 
-[mlog]
-Coordinates=114,10,40,51
-
 [Image3]
 Coordinates=604,10,49,51
 
@@ -528,7 +525,7 @@ Coordinates=675,308,98,33
 Coordinates=319,204,52,51
 
 []
-Coordinates=123,80,82,33
+Coordinates=114,10,40,51
 
 [BindSourceDB1]
 Coordinates=170,30,101,213

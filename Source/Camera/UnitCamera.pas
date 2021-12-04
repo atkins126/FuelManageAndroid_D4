@@ -22,6 +22,7 @@ type
     procedure CodeReader1CodeReady(aCode: string);
     procedure FormShow(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure btnVoltarClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -38,6 +39,11 @@ implementation
 
 uses UAbastecimento, UDmDB;
 
+procedure TFrmCamera.btnVoltarClick(Sender: TObject);
+begin
+ Close;
+end;
+
 procedure TFrmCamera.CodeReader1CodeReady(aCode: string);
 begin
   codigo := aCode;
@@ -49,6 +55,7 @@ begin
      frmAbastecimento.lblUltimoKM.Text             :='';
      frmAbastecimento.lblUltimoHr.Text             :='';
      frmAbastecimento.lblUltimoAbastecimento.Text  :='';
+     frmAbastecimento.lblVolumeLitro.Text          :='';
      ShowMessage('Maquina Não Encontrado');
      frmAbastecimento.edtMaquina.Text :='';
      Exit;
@@ -56,11 +63,13 @@ begin
    else
    begin
     frmAbastecimento.vIdMaquina                   := dmDB.TMaquinasid.AsString;
-    frmAbastecimento.layBuscaMaquina.Height       := 110;
+    frmAbastecimento.layBuscaMaquina.Height       := 135;
     frmAbastecimento.edtMaquina.Text              := dmDB.TMaquinasprefixo.AsString;
-    frmAbastecimento.lblUltimoKM.Text             := dmDB.TMaquinaskmatual.AsString;
-    frmAbastecimento.lblUltimoHr.Text             := dmDB.TMaquinashorimetroatual.AsString;
+    dmDB.RetornaUltimoKMHorimetro(dmDB.TMaquinasid.AsString);
+    frmAbastecimento.lblUltimoKM.Text             := dmDB.vUltimoKM;
+    frmAbastecimento.lblUltimoHr.Text             := dmDB.vUltimoHorimetro;
     frmAbastecimento.lblUltimoAbastecimento.Text  := dmDB.TMaquinasultimoabastecimento.AsString;
+    frmAbastecimento.lblVolumeLitro.Text          := dmDB.TMaquinasvolumetanque.AsString;
     case dmDB.TMaquinastipomedicao.AsInteger of
      0:begin
         frmAbastecimento.edtHorimetro.Enabled :=true;

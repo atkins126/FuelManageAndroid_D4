@@ -13,7 +13,7 @@ uses
   FireDAC.Comp.DataSet,System.IOUtils, IdBaseComponent, IdComponent,
   IdTCPConnection, IdTCPClient, IdHTTP, FireDAC.Stan.StorageBin,
   System.JSON,IdHashMessageDigest,System.JSON.Writers,System.JSON.Types,Data.DBXPlatform,
-  FireDAC.Stan.StorageJSON;
+  FireDAC.Stan.StorageJSON,FMX.DialogService;
 
 type
   Tdmsync = class(TDataModule)
@@ -96,27 +96,13 @@ type
     TMaquinas: TFDQuery;
     TMaquinasid: TIntegerField;
     TMaquinasstatus: TWideStringField;
-    TMaquinasdatareg: TWideStringField;
     TMaquinasidusuario: TWideStringField;
-    TMaquinasdataalteracao: TWideStringField;
-    TMaquinasidusuarioalteracao: TWideStringField;
-    TMaquinasidmarca: TWideStringField;
-    TMaquinasmodelo: TStringField;
-    TMaquinasplaca: TStringField;
-    TMaquinasano: TWideStringField;
-    TMaquinaschassi: TStringField;
-    TMaquinasidcombustivel: TWideStringField;
-    TMaquinasimg: TWideStringField;
     TMaquinasprefixo: TStringField;
-    TMaquinassyncaws: TWideStringField;
-    TMaquinassyncfaz: TWideStringField;
     TMaquinasultimoabastecimento: TDateField;
     TMaquinashorimetroultimarev: TBCDField;
     TMaquinashorimetroatual: TBCDField;
     TMaquinasqrcode: TStringField;
-    TMaquinasidgrupo: TWideStringField;
     TMaquinaskmatual: TBCDField;
-    TMaquinasidsubgrupo: TWideStringField;
     TMaquinastipomedicao: TWideStringField;
     TAbastecimento: TFDQuery;
     TAbastecimentoid: TFDAutoIncField;
@@ -179,6 +165,24 @@ type
     TLocalEstoqueidcombustivel: TIntegerField;
     TAbastecimentolatitude: TFMTBCDField;
     TAbastecimentolongitude: TFMTBCDField;
+    TMovLocalEstoque: TFDQuery;
+    TMovLocalEstoqueid: TIntegerField;
+    TMovLocalEstoquestatus: TWideStringField;
+    TMovLocalEstoquedatareg: TWideStringField;
+    TMovLocalEstoqueidusuario: TWideStringField;
+    TMovLocalEstoquedataalteracao: TWideStringField;
+    TMovLocalEstoqueidusuarioalteracao: TWideStringField;
+    TMovLocalEstoqueidlocalestoqueorigem: TWideStringField;
+    TMovLocalEstoqueidlocalestoquedetino: TWideStringField;
+    TMovLocalEstoqueidproduto: TWideStringField;
+    TMovLocalEstoqueqtde: TBCDField;
+    TMovLocalEstoquedatamov: TDateField;
+    TMovLocalEstoquehora: TTimeField;
+    TMovLocalEstoquesyncaws: TWideStringField;
+    TAbastecimentoalerta: TIntegerField;
+    TAbastecimentodescricaoalerta: TWideMemoField;
+    TMaquinasvolumetanque: TBCDField;
+    TMaquinasmodelo: TStringField;
   private
     procedure DeletaTabelaSync(Atabela:string);
     procedure AlteraFlagSync(Atabela,AFlag,Aid:string);
@@ -188,8 +192,8 @@ type
     function GetUsuario:string;
     function GetOperadorMaquinas:string;
     function GetAtividadesAbastecimento:string;
-    function GetCentroCusto:string;
-    function GetLocalEstoque:string;
+    function GetCentroCusto(idCentroCusto:string):string;
+    function GetLocalEstoque(idCentroCusto:string):string;
     function GetProdutos:string;
     function GetMaquinas:string;
     function TestaServidor: string;
@@ -197,6 +201,9 @@ type
     function PostStartDiario:string;
     function PostAbastecimento:string;
     function PostAbastecimentoOutros:string;
+    function PostMovLocalEstoque: string;
+    function PostAutenticaPatrimonio(Patrimonio:string):string;
+
   end;
 
 var
@@ -206,11 +213,123 @@ implementation
 
 {%CLASSGROUP 'FMX.Controls.TControl'}
 
-uses UDmDB;
+uses UDmDB, UPrincipal;
 
 {$R *.dfm}
 
 { TdmSync }
+
+function TdmSync.PostAutenticaPatrimonio(Patrimonio:string):string;
+var
+   URL,vReultHTTP:STRING;
+   JsonToSend  : TStringStream;
+   I:integer;
+   Txt         : TextFile;
+   Quebra      : TStringList;
+   LJSon       : TJSONArray;
+   vReultHTTPc,
+   ResponseBody,vReultCopy: String;
+   StrAux      : TStringWriter;
+   txtJson     : TJsonTextWriter;
+   LJsonObj    : TJSONObject;
+begin
+  JsonToSend := TStringStream.Create(nil);
+  StrAux  := TStringWriter.Create;
+   txtJson := TJsonTextWriter.Create(StrAux);
+   txtJson.Formatting := TJsonFormatting.Indented;
+   txtJson.WriteStartObject;
+   TxtJSON.WritePropertyName('Patrimonio');
+    TxtJSON.WriteStartArray;
+     txtJson.WriteStartObject;
+       txtJson.WritePropertyName('numero');
+       txtJson.WriteValue(Patrimonio);
+     txtJson.WriteEndObject;
+    TxtJSON.WriteEndArray; //Fecha Array dos Itens
+   txtJson.WriteEndObject;
+   LJsonObj := TJsonObject.ParseJSONValue(TEncoding.UTF8.GetBytes(StrAux.ToString),0)as TJSONObject;
+   JsonToSend := TStringStream.Create(LJsonObj.ToJSON);
+   Url := 'http://'+Host+':'+Porta+'/AutenticaPatrimonio';
+   IdHTTP1.Request.Accept      := 'application/json';
+   IdHTTP1.Request.ContentType := 'application/json';
+   ResponseBody := IdHTTP1.Post(url,JsonToSend);
+   vReultCopy := copy(ResponseBody,0,5);
+   if vReultCopy='{"OK"'then
+   begin
+     vReultHTTP := StringReplace(ResponseBody,'{"OK":"','',[rfReplaceAll]);
+     vReultHTTP := StringReplace(vReultHTTP,'"}','',[rfReplaceAll]);
+     Result     := vReultHTTP;
+   end
+   else
+   begin
+     vReultHTTP := StringReplace(ResponseBody,'{"Erro":"','',[rfReplaceAll]);
+     vReultHTTP := StringReplace(vReultHTTP,'"}','',[rfReplaceAll]);
+     Result     := 'Erro:'+vReultHTTP;
+   end;
+end;
+
+
+function TdmSync.PostMovLocalEstoque: string;
+var
+ URL,vReultHTTP:STRING;
+ JsonToSend  : TStringStream;
+ I:integer;
+begin
+ with QryAuxLoop,QryAuxLoop.SQL do
+ begin
+   Clear;
+   Add('select * from tranferencialocalestoque where syncaws=0');
+   Open;
+   while not QryAuxLoop.Eof do
+   begin
+     frmprincipal.mlog.text:='Enviando Start Diatio:'+
+      IntToStr(i)+' de '+IntToStr(QryAuxLoop.RecordCount);
+     with TMovLocalEstoque,TMovLocalEstoque.SQL do
+     begin
+      Clear;
+      Add('select * from tranferencialocalestoque');
+      Add('where id='+QryAuxLoop.FieldByName('id').AsString);
+      Open;
+     end;
+     if not TMovLocalEstoque.IsEmpty then
+     begin
+       JsonToSend := TStringStream.Create(nil);
+       TMovLocalEstoque.SaveToStream(JsonToSend,sfJSON);
+       Url := 'http://'+Host+':'+Porta+'/Transferencia';
+       IdHTTP1.Request.CustomHeaders.Clear;
+       IdHTTP1.Request.CustomHeaders.Clear;
+       IdHTTP1.Request.ContentType := 'application/json';
+       IdHTTP1.Request.Accept      := 'application/json';
+       try
+         vReultHTTP := IdHTTP1.Post(url,JsonToSend);
+         if copy(vReultHTTP,0,4)='{"OK'then
+         begin
+           vReultHTTP := StringReplace(vReultHTTP,'{"OK":"','',[rfReplaceAll]);
+           vReultHTTP := StringReplace(vReultHTTP,'"}','',[rfReplaceAll]);
+           dmsync.AlteraFlagSync('tranferencialocalestoque','1',QryAuxLoop.FieldByName('id').AsString);
+         end
+         else
+          TThread.Synchronize(nil, procedure
+          begin
+           TDialogService.ShowMessage(vReultHTTP);
+          end);
+         Inc(i);
+         QryAuxLoop.Next;
+       except
+        on E: Exception do
+        begin
+         TThread.Synchronize(nil, procedure
+         begin
+          TDialogService.ShowMessage('Erro ao sioncronizar Trasnferencia:'+e.Message);
+         end);
+         Result:='Erro ao sioncronizar Trasnferencia : '+e.Message;
+         break;
+        end;
+       end;
+     end;
+   end;
+ end;
+ Result     := vReultHTTP;
+end;
 
 procedure Tdmsync.AlteraFlagSync(Atabela, AFlag,Aid: string);
 begin
@@ -324,7 +443,7 @@ begin
    end;
 end;
 
-function Tdmsync.GetCentroCusto: string;
+function Tdmsync.GetCentroCusto(idCentroCusto:string):string;
 var
  Url,vJsonString,vIsert,
  vField,vFieldJS,vId:string;
@@ -332,14 +451,34 @@ var
  vJoItem,vJoItem1,vJoGet  : TJSONArray;
  JsonValue,JsonId:TJSONValue;
  I,J,z:integer;
-
  joName,objJson,joItem : TJSONObject;
  joItems: TJSONArray;
+ StrAux      : TStringWriter;
+ txtJson     : TJsonTextWriter;
+ LJsonObj    : TJSONObject;
+ JsonToSend   : TStringStream;
 begin
+  JsonToSend := TStringStream.Create(nil);
+  StrAux  := TStringWriter.Create;
+   txtJson := TJsonTextWriter.Create(StrAux);
+   txtJson.Formatting := TJsonFormatting.Indented;
+   txtJson.WriteStartObject;
+   TxtJSON.WritePropertyName('CentroCusto');
+    TxtJSON.WriteStartArray;
+     txtJson.WriteStartObject;
+       txtJson.WritePropertyName('id');
+       txtJson.WriteValue(idCentroCusto);
+     txtJson.WriteEndObject;
+    TxtJSON.WriteEndArray; //Fecha Array dos Itens
+   txtJson.WriteEndObject;
+   LJsonObj := TJsonObject.ParseJSONValue(TEncoding.UTF8.GetBytes(StrAux.ToString),0)as TJSONObject;
+   JsonToSend := TStringStream.Create(LJsonObj.ToJSON);
    Url := 'http://'+Host+':'+Porta+'/GetCentroCusto';
    IdHTTP1.Request.CustomHeaders.Clear;
    try
-    vJsonString        := IdHTTP1.Get(URL);
+    IdHTTP1.Request.Accept      := 'application/json';
+    IdHTTP1.Request.ContentType := 'application/json';
+    vJsonString        := IdHTTP1.Post(URL,JsonToSend);
     if(vJsonString<>'{"TCentroCusto":[') then
     begin
        jSubObj  := TJSONObject.ParseJSONValue(vJsonString) as TJSONObject;
@@ -380,7 +519,7 @@ begin
    end;
 end;
 
-function Tdmsync.GetLocalEstoque: string;
+function Tdmsync.GetLocalEstoque(idCentroCusto:string):string;
 var
  Url,vJsonString,vIsert,
  vField,vFieldJS,vId:string;
@@ -390,11 +529,32 @@ var
  I,J,z:integer;
  joName,objJson,joItem : TJSONObject;
  joItems: TJSONArray;
+ StrAux      : TStringWriter;
+ txtJson     : TJsonTextWriter;
+ LJsonObj    : TJSONObject;
+ JsonToSend   : TStringStream;
 begin
+   JsonToSend := TStringStream.Create(nil);
+  StrAux  := TStringWriter.Create;
+   txtJson := TJsonTextWriter.Create(StrAux);
+   txtJson.Formatting := TJsonFormatting.Indented;
+   txtJson.WriteStartObject;
+   TxtJSON.WritePropertyName('CentroCusto');
+    TxtJSON.WriteStartArray;
+     txtJson.WriteStartObject;
+       txtJson.WritePropertyName('id');
+       txtJson.WriteValue(idCentroCusto);
+     txtJson.WriteEndObject;
+    TxtJSON.WriteEndArray; //Fecha Array dos Itens
+   txtJson.WriteEndObject;
+   LJsonObj := TJsonObject.ParseJSONValue(TEncoding.UTF8.GetBytes(StrAux.ToString),0)as TJSONObject;
+   JsonToSend := TStringStream.Create(LJsonObj.ToJSON);
    Url := 'http://'+Host+':'+Porta+'/GetLocalEstoque';
    IdHTTP1.Request.CustomHeaders.Clear;
    try
-    vJsonString        := IdHTTP1.Get(URL);
+    IdHTTP1.Request.Accept      := 'application/json';
+    IdHTTP1.Request.ContentType := 'application/json';
+    vJsonString        := IdHTTP1.Post(URL,JsonToSend);
     if(vJsonString<>'{"TLocalEstoque":[') then
     begin
        jSubObj  := TJSONObject.ParseJSONValue(vJsonString) as TJSONObject;
@@ -485,7 +645,14 @@ begin
           begin
            vField:= StringReplace(TMaquinas.Fields[z].Name,
             'TMaquinas','',[rfReplaceAll]);
-           TMaquinas.FieldByName(vField).AsString := vJoGetJ.GetValue(vField).value;
+           if vField='ultimoabastecimento' then
+           begin
+             if vJoGetJ.GetValue(vField).value.Length>0 then
+              TMaquinas.FieldByName(vField).AsString := FormatDateTime('yyyy-mm-dd',
+               StrToDate(vJoGetJ.GetValue(vField).value));
+           end
+           else
+            TMaquinas.FieldByName(vField).AsString := vJoGetJ.GetValue(vField).value
           end;
           try
            TMaquinas.ApplyUpdates(-1);
@@ -688,6 +855,8 @@ begin
    Open;
    while not QryAuxLoop.Eof do
    begin
+     frmprincipal.mlog.text:='Enviando Abastecimento:'+
+      IntToStr(i)+' de '+IntToStr(QryAuxLoop.RecordCount);
      with TAbastecimento,TAbastecimento.SQL do
      begin
       Clear;
@@ -709,14 +878,26 @@ begin
          begin
            vReultHTTP := StringReplace(vReultHTTP,'{"OK":"','',[rfReplaceAll]);
            vReultHTTP := StringReplace(vReultHTTP,'"}','',[rfReplaceAll]);
-           dmsync.AlteraFlagSync('abastecimento','1',QryAuxLoop.FieldByName('id').AsString);
-//           dmsync.AtualizaIdSyncAbastecimento(QryAuxLoop.FieldByName('id').AsString,
-//             vReultHTTP);
-         end;
+           AlteraFlagSync('abastecimento','1',QryAuxLoop.FieldByName('id').AsString);
+           AtualizaIdSyncAbastecimento(QryAuxLoop.FieldByName('id').AsString,
+            vReultHTTP);
+         end
+         else
+          TThread.Synchronize(nil, procedure
+          begin
+           TDialogService.ShowMessage(vReultHTTP);
+          end);
+         Inc(I);
          QryAuxLoop.Next;
        except
         on E: Exception do
+        begin
+          TThread.Synchronize(nil, procedure
+          begin
+           TDialogService.ShowMessage('Erro ao sioncronizar Start Diario : '+e.Message);
+          end);
           Result:='Erro ao sioncronizar Abastecimento : '+e.Message;
+        end;
        end;
      end;
    end;
@@ -737,6 +918,8 @@ begin
    Open;
    while not QryAuxLoop.Eof do
    begin
+     frmprincipal.mlog.text:='Enviando Abastecimento Outros:'+
+      IntToStr(i)+' de '+IntToStr(QryAuxLoop.RecordCount);
      with TAbastecimentoOutros,TAbastecimentoOutros.SQL do
      begin
       Clear;
@@ -759,17 +942,31 @@ begin
            vReultHTTP := StringReplace(vReultHTTP,'{"OK":"','',[rfReplaceAll]);
            vReultHTTP := StringReplace(vReultHTTP,'"}','',[rfReplaceAll]);
            dmsync.AlteraFlagSync('abastecimentooutros','1',vReultHTTP);
-         end;
+         end
+         else
+          TThread.Synchronize(nil, procedure
+          begin
+           TDialogService.ShowMessage(vReultHTTP);
+          end);
+         inc(i);
          QryAuxLoop.Next;
        except
         on E: Exception do
+        begin
+         TThread.Synchronize(nil, procedure
+         begin
+          TDialogService.ShowMessage('Erro ao sioncronizar Start Diario : '+e.Message);
+         end);
           Result:='Erro ao sioncronizar Abastecimento Outros : '+e.Message;
+        end;
        end;
      end;
    end;
  end;
  Result     := vReultHTTP;
 end;
+
+
 
 function Tdmsync.PostStartDiario: string;
 var
@@ -780,10 +977,14 @@ begin
  with QryAuxLoop,QryAuxLoop.SQL do
  begin
    Clear;
-   Add('select * from startbomba where syncaws=0');
+   Add('select * from startbomba where syncaws=0 and status=2');
    Open;
+   I :=1;
    while not QryAuxLoop.Eof do
    begin
+     frmprincipal.mlog.text:='Enviando Start Diatio:'+
+      IntToStr(i)+' de '+IntToStr(QryAuxLoop.RecordCount) ;
+
      with TStartDiario,TStartDiario.SQL do
      begin
       Clear;
@@ -806,11 +1007,21 @@ begin
            vReultHTTP := StringReplace(vReultHTTP,'{"OK":"','',[rfReplaceAll]);
            vReultHTTP := StringReplace(vReultHTTP,'"}','',[rfReplaceAll]);
            dmsync.AlteraFlagSync('startbomba','1',vReultHTTP);
-         end;
+         end
+         else
+          TThread.Synchronize(nil, procedure
+          begin
+           TDialogService.ShowMessage(vReultHTTP);
+          end);
+         inc(I);
          QryAuxLoop.Next;
        except
         on E: Exception do
         begin
+         TThread.Synchronize(nil, procedure
+         begin
+           TDialogService.ShowMessage('Erro ao sioncronizar Start Diario : '+e.Message);
+         end);
          Result:='Erro ao sioncronizar Start Diario : '+e.Message;
          Break;
         end;

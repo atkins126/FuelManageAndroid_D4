@@ -118,12 +118,6 @@ type
     Layout32: TLayout;
     Label26: TLabel;
     Layout33: TLayout;
-    btnConfirmaPluvi: TRectangle;
-    Label28: TLabel;
-    Image21: TImage;
-    Rectangle13: TRectangle;
-    Image4: TImage;
-    Label19: TLabel;
     EditButton3: TEditButton;
     btnLerQr: TEditButton;
     Image5: TImage;
@@ -218,16 +212,6 @@ type
     tbiImg: TTabItem;
     layImgHorimetro: TLayout;
     Rectangle26: TRectangle;
-    btnFotoHorimetro: TRectangle;
-    Image12: TImage;
-    Label8: TLabel;
-    btnFotoBomba: TRectangle;
-    Image13: TImage;
-    Label30: TLabel;
-    RecImgHrimetro: TRectangle;
-    imgHorimetro: TImage;
-    RecImgBomba: TRectangle;
-    imgBomba: TImage;
     Layout71: TLayout;
     Layout42: TLayout;
     Rectangle21: TRectangle;
@@ -243,6 +227,47 @@ type
     ActFoto: TTakePhotoFromCameraAction;
     edtHorimetro: TEdit;
     edtKm: TEdit;
+    layAlerta: TLayout;
+    Rectangle5: TRectangle;
+    ToolBar1: TToolBar;
+    recToolBar: TRectangle;
+    lblCad: TLabel;
+    btnFechar: TImage;
+    Layout16: TLayout;
+    Layout17: TLayout;
+    Rectangle23: TRectangle;
+    Label11: TLabel;
+    cbxTipoAlerta: TComboBox;
+    Layout46: TLayout;
+    btnConfirmaAlerta: TRectangle;
+    Image15: TImage;
+    Label36: TLabel;
+    btnConfirmaProduto: TRectangle;
+    Image4: TImage;
+    Label19: TLabel;
+    Image18: TImage;
+    Layout47: TLayout;
+    Label28: TLabel;
+    lblVolumeLitro: TLabel;
+    layFotoKM: TLayout;
+    Rectangle13: TRectangle;
+    imgFotoKM: TImage;
+    btnFotoKM: TRectangle;
+    Image20: TImage;
+    Label37: TLabel;
+    layFotoHorimetro: TLayout;
+    RecImgHrimetro: TRectangle;
+    imgHorimetro: TImage;
+    btnFotoHorimetro: TRectangle;
+    Image12: TImage;
+    Label8: TLabel;
+    layFotoBomba: TLayout;
+    RecImgBomba: TRectangle;
+    imgBomba: TImage;
+    btnFotoBomba: TRectangle;
+    Image13: TImage;
+    Label30: TLabel;
+    VertScrollBox1: TVertScrollBox;
     edtLitros: TEdit;
     procedure btnBuscarMaquinaClick(Sender: TObject);
     procedure EditButton1Click(Sender: TObject);
@@ -279,8 +304,6 @@ type
       Shift: TShiftState; X, Y: Single);
     procedure edtNomeFiltroChangeTracking(Sender: TObject);
     procedure EditButton3Click(Sender: TObject);
-    procedure btnConfirmaPluviClick(Sender: TObject);
-    procedure Rectangle13Click(Sender: TObject);
     procedure btnNovoProdutoClick(Sender: TObject);
     procedure btnVoltarProdutoClick(Sender: TObject);
     procedure tbPrincipalChange(Sender: TObject);
@@ -309,8 +332,18 @@ type
     procedure btnSalvarFotoClick(Sender: TObject);
     procedure Rectangle27Click(Sender: TObject);
     procedure btnImgClick(Sender: TObject);
+    procedure cbxTipoAlertaChange(Sender: TObject);
+    procedure btnFecharClick(Sender: TObject);
+    procedure btnConfirmaAlertaClick(Sender: TObject);
+    procedure btnConfirmaProdutoClick(Sender: TObject);
+    procedure Image18Click(Sender: TObject);
+    procedure btnFotoKMClick(Sender: TObject);
+    procedure edtKmTyping(Sender: TObject);
+    procedure edtHorimetroTyping(Sender: TObject);
+    procedure edtLitrosTyping(Sender: TObject);
   private
     vLatitude,vLongitude:string;
+    vTipoAlerta,vErro:integer;
     permissao : T99Permissions;
     FImageStream: TStringStream;
     {$IFDEF ANDROID}
@@ -352,12 +385,13 @@ type
     procedure AfterConstruction; override;
     function BitmapFromBase64(const base64: string): TBitmap;
     function Base64FromBitmap(Bitmap: TBitmap): string;
+    procedure InsertAbastecimento;
   public
     ClipService: IFMXClipboardService;
     Elapsed,vImgCapture,vAbriImg: integer;
     vIdMaquina,vIdLocalEstoque,vFiltro,vFlagSync,
     vIdAbastecimento,vIdProduto,vIdItemOutros,vILocalOrigem,vIdLocalDestino,
-    vIdTransferencia,vIdCombustivel,vImg64Horimetro,vImg64Bomba:string;
+    vIdTransferencia,vIdCombustivel,vImg64Horimetro,vImg64Bomba,vImg64KM:string;
   end;
 
 var
@@ -367,14 +401,31 @@ implementation
 
 {$R *.fmx}
 
-uses UPrincipal, Maquinas,ULocalEstoque,UProdutos,UDmDB, UnitCamera;
+uses UPrincipal, Maquinas,ULocalEstoque,UProdutos,UDmDB, UnitCamera,
+  UStartBomba, uFormat;
 
 procedure TfrmAbastecimento.btnBuscarClick(Sender: TObject);
 begin
  GeraLista(GeraFiltro);
 end;
 
-procedure TfrmAbastecimento.btnConfirmaPluviClick(Sender: TObject);
+procedure TfrmAbastecimento.btnConfirmaAlertaClick(Sender: TObject);
+begin
+ if cbxTipoAlerta.ItemIndex=-1 then
+ begin
+   ShowMessage('Selecione um aleta!');
+   Exit;
+ end;
+   case cbxTipoAlerta.ItemIndex of
+     0:vTipoAlerta:=1;
+     1:vTipoAlerta:=2;
+     2:vTipoAlerta:=3;
+     3:vTipoAlerta:=4;
+   end;
+ layAlerta.Visible := false;
+end;
+
+procedure TfrmAbastecimento.btnConfirmaProdutoClick(Sender: TObject);
 begin
  if edtOutroProduto.Text.Length=0 then
  begin
@@ -403,73 +454,14 @@ end;
 
 procedure TfrmAbastecimento.btnConfirmarAClick(Sender: TObject);
 var
- objSurf: TBitmapSurface;
+ vVolumeF,vLitroF,vPescent,vKM,vHorimetro :double;
 begin
+ vErro       :=0;
  if edtMaquina.Text.Length=0 then
  begin
    ShowMessage('Informe a Maquina!!');
    edtMaquina.SetFocus;
    Exit;
- end;
- case dmDB.TMaquinastipomedicao.AsInteger of
-   0:begin
-       if(edtHorimetro.Text.Length=0) then
-       begin
-         ShowMessage('Informe o Horimetro!!');
-         edtHorimetro.SetFocus;
-         Exit;
-       end;
-       if (lblUltimoHr.Text.Length>0)and(lblUltimoHr.Text<>'0')
-        and (edtHorimetro.Text.Length>0)then
-        if strToInt(lblUltimoHr.Text)>strToInt(edtHorimetro.Text) then
-        begin
-         ShowMessage('Horímetro Atual não pode ser menor que o último!');
-         Exit;
-        end;
-     end;
-   1:begin
-       if(edtKM.Text.Length=0) then
-       begin
-         ShowMessage('Informe o KM!!');
-         edtHorimetro.SetFocus;
-         Exit;
-       end;
-       if(lblUltimokm.Text.Length>0)and(lblUltimokm.Text<>'0')
-        and(edtKM.Text.Length>0)then
-        if strToInt(lblUltimokm.Text)>StrToFloat(edtKM.Text) then
-        begin
-         ShowMessage('KM Atual não pode ser menor que o último!');
-         Exit;
-        end;
-     end;
-   2:begin
-       if (edtHorimetro.Text.Length=0) then
-       begin
-         ShowMessage('Informe o Horimetro!!');
-         edtHorimetro.SetFocus;
-         Exit;
-       end;
-       if (edtKM.Text.Length=0) then
-       begin
-         ShowMessage('Informe o KM!!');
-         edtKM.SetFocus;
-         Exit;
-       end;
-       if (lblUltimoHr.Text.Length>0)and(lblUltimoHr.Text<>'0')
-        and (edtHorimetro.Text.Length>0)then
-        if strToInt(lblUltimoHr.Text)>StrToFloat(edtHorimetro.Text) then
-        begin
-         ShowMessage('Horímetro Atual não pode ser menor que o último!');
-         Exit;
-        end;
-       if (lblUltimokm.Text.Length>0)and(lblUltimokm.Text<>'0')
-        and (edtKM.Text.Length>0)then
-        if strToInt(lblUltimokm.Text)>StrToFloat(edtKM.Text) then
-        begin
-         ShowMessage('KM Atual não pode ser menor que o último!');
-         Exit;
-        end;
-     end;
  end;
  if edtLocalEstoque.Text.Length=0 then
  begin
@@ -483,7 +475,7 @@ begin
    edtCombustivel.SetFocus;
    Exit;
  end;
- if (edtLitros.Text.Length=0)OR(edtLitros.Text='0,00') then
+ if (edtLitros.Text.Length=0)OR(edtLitros.Text='0') then
  begin
    ShowMessage('Informe os Litros!!');
    edtHorimetro.SetFocus;
@@ -494,9 +486,14 @@ begin
    ShowMessage('Foto da Bomba é Obrigatoria!!');
    Exit;
   end;
- if (vImg64Horimetro.Length=0)then
+  if(vImg64Horimetro.Length=0)then
   begin
    ShowMessage('Foto do Horímetro é Obrigatoria!!');
+   Exit;
+  end;
+  if(vImg64KM.Length=0)AND(dmDB.TMaquinastipomedicao.AsInteger=2)then
+  begin
+   ShowMessage('Foto do KM é Obrigatoria!!');
    Exit;
   end;
   if (edtLatitude.Text.Length=0) or (edtLatitude.Text.Length=0) then
@@ -505,34 +502,240 @@ begin
    LocationSensor1.Active := true;
    Exit;
   end;
-  dmdb.TAbastecimento.Insert;
-//  dmdb.TAbastecimentoid.AsInteger                       := dmDB.RetornaIdAbastecimento;
-  dmdb.TAbastecimentoidmaquina.AsString                 := vIdMaquina;
-  dmdb.TAbastecimentoidusuario.AsString                 := dmDB.vIdUser;
-  dmdb.TAbastecimentoidlocalestoque.AsString            := vIdLocalEstoque;
-  dmdb.TAbastecimentocombustivel.AsString               := vIdCombustivel;
-  dmdb.TAbastecimentodataabastecimento.AsDateTime       := edtData.DateTime;
-  dmdb.TAbastecimentohora.AsDateTime                    := edtHora.DateTime;
-  dmdb.TAbastecimentovolumelt.AsFloat                   := StrToFloat(edtLitros.Text);
-  dmdb.TAbastecimentoimg.AsString                       := vImg64Horimetro;
-  dmdb.TAbastecimentoimg2.AsString                      := vImg64Bomba;
-  dmdb.TAbastecimentolatitude.AsString                  := edtLatitude.Text;
-  dmdb.TAbastecimentolongitude.AsString                 := edtLongitude.Text;
-
-  dmdb.TAbastecimentoidcentrocusto.AsString             := dmDB.vIdCentroCusto;
-  if edtHorimetro.Text.Length>0 then
-   dmdb.TAbastecimentohorimetro.AsFloat                 := StrToFloat(edtHorimetro.Text);
-  if edtKM.Text.Length>0 then
-   dmdb.TAbastecimentokmatual.AsFloat                   := StrToFloat(edtKM.Text);
-  try
-   dmdb.TAbastecimento.ApplyUpdates(-1);
-   ShowMessage('Abastecimento Adicionada com sucesso!!');
-   GeraLista('');
-   MudarAba(tbiLista,sender);
-  except
-   on E: Exception do
-    ShowMessage('Erro ao salvar Abastecimento:'+E.Message);
+  if(lblVolumeLitro.Text.Length>0)and(lblVolumeLitro.Text<>'0') then
+  begin
+    vVolumeF := StrToFloat(lblVolumeLitro.Text);
+    vLitroF  := StrToFloat(StringReplace(edtLitros.Text,'.','',[rfReplaceAll]));
+    vPescent := (vLitroF*100)/vVolumeF;
+    if vPescent>110 then
+    begin
+     vErro :=1;
+     ShowMessage('Quantidade de litros não pode ser maior'+#13+
+     'do que a capacidade do tanque da maquina + 10%');
+     Exit;
+    end;
   end;
+  // checagem Horimetro Hodometro
+  if dmDB.TMaquinastipomedicao.AsInteger=0 then // se for Horimetro
+  begin
+    if(edtHorimetro.Text.Length=0) then
+    begin
+     ShowMessage('Informe o Horimetro!!');
+     edtHorimetro.SetFocus;
+     Exit;
+    end;
+    vHorimetro := StrToFloat(StringReplace(edtHorimetro.Text,'.','',[rfReplaceAll]));
+    if (vTipoAlerta=0)and(strToInt(lblUltimoHr.Text)>=vHorimetro) then
+    begin
+     vErro :=1;
+     MessageDlg('Horímetro Atual não pode ser menor ou igual ao último'+#13+
+     'Deseja Informar um alerta para prosseguir?', System.UITypes.TMsgDlgType.mtInformation,
+     [System.UITypes.TMsgDlgBtn.mbYes,
+     System.UITypes.TMsgDlgBtn.mbNo
+     ], 0,
+     procedure(const AResult: System.UITypes.TModalResult)
+     begin
+      case AResult of
+       mrYES:
+       begin
+         layAlerta.Visible := true;
+         Exit;
+       end;
+       mrNo:
+        Exit;
+      end;
+     end);
+    end;
+    if vErro=0 then
+    begin
+      if (vTipoAlerta=0)and(vHorimetro-strToInt(lblUltimoHr.Text)>24) then
+      begin
+       vErro :=1;
+       MessageDlg('Horímetro Atual não pode ser maior do que 24 horas do último registrado'+#13+
+       'Deseja Informar um alerta para prosseguir?', System.UITypes.TMsgDlgType.mtInformation,
+       [System.UITypes.TMsgDlgBtn.mbYes,
+       System.UITypes.TMsgDlgBtn.mbNo
+       ], 0,
+       procedure(const AResult: System.UITypes.TModalResult)
+       begin
+        case AResult of
+         mrYES:
+         begin
+           layAlerta.Visible := true;
+           Exit;
+         end;
+         mrNo:
+          Exit;
+        end;
+       end);
+      end
+    end;
+  end; // fim checagem Horimetro
+
+  if dmDB.TMaquinastipomedicao.AsInteger=1 then // se for Hodometro
+  begin
+    if(edtKM.Text.Length=0) then
+    begin
+     ShowMessage('Informe o KM!!');
+     edtHorimetro.SetFocus;
+     Exit;
+    end;
+    vKM := StrToFloat(StringReplace(edtKM.Text,'.','',[rfReplaceAll]));
+    if(vTipoAlerta=0)and(strToInt(lblUltimokm.Text)>=vKM) then
+    begin
+      vErro :=1;
+      MessageDlg('KM Atual não pode ser menor ou igual ao último'+#13+
+      'Deseja Informar um alerta para prosseguir?', System.UITypes.TMsgDlgType.mtInformation,
+      [System.UITypes.TMsgDlgBtn.mbYes,
+      System.UITypes.TMsgDlgBtn.mbNo
+      ], 0,
+      procedure(const AResult: System.UITypes.TModalResult)
+      begin
+       case AResult of
+        mrYES:
+        begin
+          layAlerta.Visible := true;
+          Exit;
+        end;
+        mrNo:
+         Exit;
+       end;
+      end);
+    end;
+    if vErro=0 then
+    begin
+      if (vTipoAlerta=0)and((vKM-strToInt(lblUltimokm.Text))>600) then
+      begin
+        vErro :=1;
+        MessageDlg('KM Atual não pode ser 600 km maior do que o último registrado?',
+        System.UITypes.TMsgDlgType.mtInformation,
+        [System.UITypes.TMsgDlgBtn.mbYes,
+        System.UITypes.TMsgDlgBtn.mbNo
+        ], 0,
+        procedure(const AResult: System.UITypes.TModalResult)
+        begin
+         case AResult of
+          mrYES:
+          begin
+            layAlerta.Visible := true;
+            Exit;
+          end;
+          mrNo:
+           Exit;
+         end;
+        end);
+      end
+    end;
+  end;//Fim  checagem Hdometro
+  if dmDB.TMaquinastipomedicao.AsInteger=2 then // se for Horimetro e Hodometro
+  begin
+    if(edtHorimetro.Text.Length=0) then
+    begin
+     ShowMessage('Informe o Horimetro!!');
+     edtHorimetro.SetFocus;
+     Exit;
+    end;
+    vHorimetro := StrToFloat(StringReplace(edtHorimetro.Text,'.','',[rfReplaceAll]));
+    if (edtKM.Text.Length=0) then
+    begin
+     ShowMessage('Informe o KM!!');
+     edtKM.SetFocus;
+     Exit;
+    end;
+    vKM := StrToFloat(StringReplace(edtKM.Text,'.','',[rfReplaceAll]));
+    if (vTipoAlerta=0)and(strToInt(lblUltimoHr.Text)>=vHorimetro) then
+    begin
+      vErro :=1;
+      MessageDlg('Horímetro Atual não pode ser menor ou igual ao último'+#13+
+      'Deseja Informar um alerta para prosseguir?', System.UITypes.TMsgDlgType.mtInformation,
+      [System.UITypes.TMsgDlgBtn.mbYes,
+      System.UITypes.TMsgDlgBtn.mbNo
+      ], 0,
+      procedure(const AResult: System.UITypes.TModalResult)
+      begin
+       case AResult of
+        mrYES:
+        begin
+          layAlerta.Visible := true;
+          Exit;
+        end;
+        mrNo:
+         Exit;
+       end;
+      end);
+    end;
+    if vErro=0 then
+    begin
+      if (vTipoAlerta=0)and((vHorimetro-strToInt(lblUltimoHr.Text))>24) then
+      begin
+       vErro :=1;
+       MessageDlg('Horímetro Atual não pode ser maior do que 24 horas do último registrado'+#13+
+       'Deseja Informar um alerta para prosseguir?', System.UITypes.TMsgDlgType.mtInformation,
+       [System.UITypes.TMsgDlgBtn.mbYes,
+       System.UITypes.TMsgDlgBtn.mbNo
+       ], 0,
+       procedure(const AResult: System.UITypes.TModalResult)
+       begin
+        case AResult of
+         mrYES:
+         begin
+           layAlerta.Visible := true;
+           Exit;
+         end;
+         mrNo:
+          Exit;
+        end;
+       end);
+      end;
+    end;
+    if vErro=0 then
+    begin
+      if(vTipoAlerta=0)and(strToInt(lblUltimokm.Text)>=vkM) then
+      begin
+       vErro :=1;
+       MessageDlg('KM Atual não pode ser menor ou igual ao último'+#13+
+       'Deseja Informar um alerta para prosseguir?', System.UITypes.TMsgDlgType.mtInformation,
+       [System.UITypes.TMsgDlgBtn.mbYes,
+       System.UITypes.TMsgDlgBtn.mbNo
+       ], 0,
+       procedure(const AResult: System.UITypes.TModalResult)
+       begin
+        case AResult of
+         mrYES:
+         begin
+           layAlerta.Visible := true;
+           Exit;
+         end;
+         mrNo:
+          Exit;
+        end;
+       end);
+      end;
+      if (vTipoAlerta=0)and((vKM-strToInt(lblUltimokm.Text))>600) then
+      begin
+        vErro :=1;
+        MessageDlg('KM Atual não pode ser 600 km maior do que o último registrado?',
+        System.UITypes.TMsgDlgType.mtInformation,
+        [System.UITypes.TMsgDlgBtn.mbYes,
+        System.UITypes.TMsgDlgBtn.mbNo
+        ], 0,
+        procedure(const AResult: System.UITypes.TModalResult)
+        begin
+         case AResult of
+          mrYES:
+          begin
+            layAlerta.Visible := true;
+            Exit;
+          end;
+          mrNo:
+           Exit;
+         end;
+        end);
+      end
+    end;
+  end;
+  if (vErro)=0 then
+     InsertAbastecimento;
 end;
 
 procedure TfrmAbastecimento.btnExcluiItemClick(Sender: TObject);
@@ -600,6 +803,11 @@ begin
  end;
 end;
 
+procedure TfrmAbastecimento.btnFecharClick(Sender: TObject);
+begin
+ layAlerta.Visible := false;
+end;
+
 procedure TfrmAbastecimento.btnFotoBombaClick(Sender: TObject);
 begin
 vImgCapture:=2;
@@ -634,16 +842,41 @@ vImgCapture:=1;
   {$ENDIF}
 end;
 
+procedure TfrmAbastecimento.btnFotoKMClick(Sender: TObject);
+begin
+ vImgCapture:=3;
+ {$IFDEF ANDROID}
+  PermissionsService.RequestPermissions([PermissaoCamera,
+                                         PermissaoReadStorage,
+                                         PermissaoWriteStorage],
+                                         TakePicturePermissionRequestResult,
+                                         DisplayMessageCamera
+                                         );
+  {$ENDIF}
+
+  {$IFDEF IOS}
+  ActFoto.Execute;
+  {$ENDIF}
+end;
+
 procedure TfrmAbastecimento.btnImgClick(Sender: TObject);
 begin
  if vImg64Horimetro.Length>0 then
   imgHorimetro.Bitmap  := BitmapFromBase64(vImg64Horimetro)
  else
   imgHorimetro.Bitmap  := nil;
+
  if vImg64Horimetro.Length>0 then
   imgBomba.Bitmap  := BitmapFromBase64(vImg64Bomba)
  else
   imgBomba.Bitmap  := nil;
+
+ if vImg64KM.Length>0 then
+  imgFotoKM.Bitmap  := BitmapFromBase64(vImg64KM)
+ else
+  imgFotoKM.Bitmap  := nil;
+
+
  MudarAba(tbiImg,sender)
 end;
 
@@ -654,14 +887,31 @@ end;
 
 procedure TfrmAbastecimento.btnNovoClick(Sender: TObject);
 begin
- vAbriImg           :=0;
- vImg64Bomba        :='';
- vImg64Horimetro    :='';
- layBuscaMaquina.Height  := 60;
- lblPage.Text            := 'Novo Abastecimentos';
- LimpaCampos;
- dmDB.TAbastecimento.Insert;
- MudarAba(tbiCad,sender);
+ vFiltro := ' and s.status=1 and s.dataastart='+FormatDateTime('yyyy-mm-dd',date).QuotedString;
+ dmDB.AbrirStartBomba(vFiltro);
+ if dmDB.TStartbomba.IsEmpty then
+ begin
+  ShowMessage('É necessario realizar o Start Diario antes de abastecer!');
+  Exit;
+ end
+ else
+ begin
+   LimpaCampos;
+   edtLocalEstoque.Text    := dmDB.TStartbombaLocal.AsString;
+   vIdLocalEstoque         := dmDB.TStartbombaidlocalestoque.AsString;
+   vIdCombustivel          := dmDB.TStartbombacombustivel.AsString;
+   edtCombustivel.Text     := dmDB.TStartbombaCombustivelNome.AsString;
+   edtLocalEstoque.Enabled := false;
+   edtCombustivel.Enabled  := false;
+   layAlerta.Height        := 180;
+   vAbriImg                := 0;
+   vImg64Bomba             := '';
+   vImg64Horimetro         := '';
+   layBuscaMaquina.Height  := 60;
+   lblPage.Text            := 'Novo Abastecimentos';
+   dmDB.TAbastecimento.Insert;
+   MudarAba(tbiCad,sender);
+ end;
 end;
 
 procedure TfrmAbastecimento.btnNovoMouseDown(Sender: TObject;
@@ -707,8 +957,13 @@ procedure TfrmAbastecimento.btnSalvarFotoClick(Sender: TObject);
 begin
  if not imgHorimetro.Bitmap.IsEmpty then
    vImg64Horimetro := Base64FromBitmap(imgHorimetro.Bitmap);
+
  if not imgBomba.Bitmap.IsEmpty then
    vImg64Bomba := Base64FromBitmap(imgBomba.Bitmap);
+
+ if not imgFotoKM.Bitmap.IsEmpty then
+   vImg64KM := Base64FromBitmap(imgFotoKM.Bitmap);
+
  MudarAba(tbiCad,sender);
 end;
 
@@ -722,6 +977,11 @@ begin
   if vImgCapture=2 then
   begin
    imgBomba.Bitmap.Assign(Image);
+   Exit;
+  end;
+  if vImgCapture=3 then
+  begin
+   imgFotoKM.Bitmap.Assign(Image);
    Exit;
   end;
 end;
@@ -741,8 +1001,7 @@ var
 begin
   Input := TBytesStream.Create;
   try
-    Bitmap.Rotate(90);
-    Bitmap.Resize(350,350);
+    Bitmap.Resize(300,300);
     Bitmap.SaveToStream(Input);
     Input.Position := 0;
     Output := TStringStream.Create('', TEncoding.ASCII);
@@ -814,7 +1073,22 @@ end;
 
 procedure TfrmAbastecimento.btnVoltar1Click(Sender: TObject);
 begin
-  Close;
+ begin
+   MessageDlg('Deseja Realmente Sair dessa Tela?', System.UITypes.TMsgDlgType.mtInformation,
+   [System.UITypes.TMsgDlgBtn.mbYes,
+   System.UITypes.TMsgDlgBtn.mbNo
+   ], 0,
+   procedure(const AResult: System.UITypes.TModalResult)
+   begin
+    case AResult of
+     mrYES:
+     begin
+       Close;
+     end;
+     mrNo:
+    end;
+   end);
+ end
 end;
 
 procedure TfrmAbastecimento.btnVoltar1MouseDown(Sender: TObject;
@@ -872,6 +1146,17 @@ begin
    btnVoltarProduto.Opacity :=1;
 end;
 
+procedure TfrmAbastecimento.cbxTipoAlertaChange(Sender: TObject);
+begin
+ if cbxTipoAlerta.ItemIndex=4 then
+  layAlerta.Height:=275
+ else
+ begin
+
+ end;
+
+end;
+
 {$IFDEF ANDROID}
 
 procedure TfrmAbastecimento.DisplayMessageCamera(Sender: TObject;
@@ -920,10 +1205,7 @@ begin
   actMudarAba.ExecuteTarget(sender);
 end;
 
-procedure TfrmAbastecimento.Rectangle13Click(Sender: TObject);
-begin
- layNewOutros.Visible := false;
-end;
+
 
 procedure TfrmAbastecimento.Rectangle27Click(Sender: TObject);
 begin
@@ -991,6 +1273,21 @@ begin
   end;
 end;
 
+procedure TfrmAbastecimento.edtHorimetroTyping(Sender: TObject);
+begin
+ formatar(edtHorimetro,TFormato.Valor);
+end;
+
+procedure TfrmAbastecimento.edtKmTyping(Sender: TObject);
+begin
+ formatar(edtKm,TFormato.Valor);
+end;
+
+procedure TfrmAbastecimento.edtLitrosTyping(Sender: TObject);
+begin
+ formatar(edtLitros,TFormato.ValorDecimal);
+end;
+
 procedure TfrmAbastecimento.edtNomeFiltroChangeTracking(Sender: TObject);
 begin
  if edtNomeFiltro.Text.Length>0 then
@@ -1047,9 +1344,11 @@ end;
 
 procedure TfrmAbastecimento.FormShow(Sender: TObject);
 begin
- RecImgHrimetro.Height   := (frmAbastecimento.Height/2)-95;
- RecImgBomba.Height      := (frmAbastecimento.Height/2)-95;
+ RecImgHrimetro.Height   := (frmAbastecimento.Height/3)-50;
+ RecImgBomba.Height      := (frmAbastecimento.Height/3)-50;
+ RecImgBomba.Height      := (frmAbastecimento.Height/3)-50;
  layNewOutros.Width      := frmAbastecimento.Width-20;
+ layAlerta.Width         := frmAbastecimento.Width-20;
  layBuscaMaquina.Height  := 60;
  lblPage.Text            := 'Abastecimentos';
  layNewOutros.Visible    := false;
@@ -1205,6 +1504,53 @@ begin
  end).Start;
 end;
 
+procedure TfrmAbastecimento.Image18Click(Sender: TObject);
+begin
+ layNewOutros.Visible := false;
+end;
+
+procedure TfrmAbastecimento.InsertAbastecimento;
+var
+ vKM,vHorimetro:double;
+begin
+  if edtKM.Text.Length>0 then
+   vKM := StrToFloat(StringReplace(edtKM.Text,'.','',[rfReplaceAll]));
+  if edtHorimetro.Text.Length>0 then
+   vHorimetro := StrToFloat(StringReplace(edtHorimetro.Text,'.','',[rfReplaceAll]));
+
+  dmdb.TAbastecimento.Insert;
+  dmdb.TAbastecimentoid.AsInteger                       := dmDB.RetornaIdAbastecimento;
+  dmdb.TAbastecimentoidmaquina.AsString                 := vIdMaquina;
+  dmdb.TAbastecimentoidusuario.AsString                 := dmDB.vIdUser;
+  dmdb.TAbastecimentoidlocalestoque.AsString            := vIdLocalEstoque;
+  dmdb.TAbastecimentocombustivel.AsString               := vIdCombustivel;
+  dmdb.TAbastecimentodataabastecimento.AsDateTime       := edtData.DateTime;
+  dmdb.TAbastecimentohora.AsDateTime                    := edtHora.DateTime;
+  dmdb.TAbastecimentovolumelt.AsFloat                   := StrToFloat(edtLitros.Text);
+  dmdb.TAbastecimentoimg.AsString                       := vImg64Horimetro;
+  dmdb.TAbastecimentoimg2.AsString                      := vImg64Bomba;
+  if vImg64KM.Length>0 then
+   dmdb.TAbastecimentoimg3.AsString                     := vImg64KM;
+
+  dmdb.TAbastecimentolatitude.AsString                  := edtLatitude.Text;
+  dmdb.TAbastecimentolongitude.AsString                 := edtLongitude.Text;
+  dmdb.TAbastecimentoidcentrocusto.AsString             := dmDB.vIdCentroCusto;
+  if edtHorimetro.Text.Length>0 then
+   dmdb.TAbastecimentohorimetro.AsFloat                 := vHorimetro;
+  if edtKM.Text.Length>0 then
+   dmdb.TAbastecimentokmatual.AsFloat                   := vKM;
+  dmdb.TAbastecimentoalerta.AsInteger                   := vTipoAlerta;
+  try
+   dmdb.TAbastecimento.ApplyUpdates(-1);
+   ShowMessage('Abastecimento Adicionada com sucesso!!');
+   GeraLista('');
+   tbPrincipal.ActiveTab := tbiLista;
+  except
+   on E: Exception do
+    ShowMessage('Erro ao salvar Abastecimento:'+E.Message);
+  end;
+end;
+
 procedure TfrmAbastecimento.LibraryPermissionRequestResult(Sender: TObject;
   const APermissions: TArray<string>;
   const AGrantResults: TArray<TPermissionStatus>);
@@ -1219,16 +1565,21 @@ end;
 
 procedure TfrmAbastecimento.LimpaCampos;
 begin
-  edtMaquina.Text          :='';
-  edtLocalEstoque.Text     :='';
-  edtLitros.text           :='';
-  edtHorimetro.text        :='';
-  edtKM.text               :='';
-  edtData.Date             :=date;
-  edtHora.DateTime         :=now;
-  edtCombustivel.Text      :='';
-  edtLatitude.Text         :='';
-  edtLongitude.Text        :='';
+  edtMaquina.Text          := '';
+  edtLocalEstoque.Text     := '';
+  edtLitros.text           := '';
+  edtHorimetro.text        := '';
+  edtKM.text               := '';
+  edtData.Date             := date;
+  edtHora.DateTime         := now;
+  edtCombustivel.Text      := '';
+  edtLatitude.Text         := '';
+  edtLongitude.Text        := '';
+  vTipoAlerta              := 0;
+  layAlerta.Visible        := false;
+  vImg64Horimetro          := '';
+  vImg64Bomba              := '';
+  vImg64KM                 := '';
 end;
 
 procedure TfrmAbastecimento.ListaGesture(Sender: TObject;
@@ -1274,10 +1625,18 @@ begin
       imgHorimetro.Bitmap  := BitmapFromBase64(vImg64Horimetro)
      else
       imgHorimetro.Bitmap  := nil;
+
      if vImg64Horimetro.Length>0 then
       imgBomba.Bitmap  := BitmapFromBase64(vImg64Bomba)
      else
       imgBomba.Bitmap  := nil;
+
+     if vImg64KM.Length>0 then
+      imgFotoKM.Bitmap  := BitmapFromBase64(vImg64KM)
+     else
+      imgFotoKM.Bitmap  := nil;
+
+
      MudarAba(tbiImg,sender)
     end;
   end;

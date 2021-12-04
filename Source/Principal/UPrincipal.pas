@@ -15,7 +15,9 @@ uses
   FMX.TreeView,System.Net.HttpClient, FMX.Memo.Types
  {$IF DEFINED(iOS) or DEFINED(ANDROID)}
   ,AndroidApi.helpers,AndroidApi.JNI.JavaTypes,AndroidApi.JNI.GraphicsContentViewText,
-  Androidapi.JNI.Os,Androidapi.JNIBridge
+  Androidapi.JNI.Os,Androidapi.JNIBridge,Androidapi.JNI.Telephony,Androidapi.JNI.Provider,
+  FMX.Helpers.Android,FMX.Platform.Android,System.PushNotification,System.Permissions,
+  FMX.VirtualKeyboard
  {$ENDIF}
  {$IFDEF MSWINDOWS}
   ,Winapi.Windows
@@ -127,7 +129,6 @@ type
     AcMudarAbaDespesas: TAction;
     AcLeft: TAction;
     AcRigth: TAction;
-    mlog: TMemo;
     edtSenha: TEdit;
     Layout16: TLayout;
     btnConfig: TRectangle;
@@ -184,6 +185,30 @@ type
     imgRecLista: TImage;
     imgCam2: TImage;
     imgProdutos2: TImage;
+    imgTransf: TImage;
+    Layout38: TLayout;
+    btnMovEstoque: TRectangle;
+    Image6: TImage;
+    ShadowEffect6: TShadowEffect;
+    Label13: TLabel;
+    Layout40: TLayout;
+    Rectangle9: TRectangle;
+    Image7: TImage;
+    ShadowEffect8: TShadowEffect;
+    lblTrasnferenciaPendente: TLabel;
+    mlog: TEdit;
+    ProgressBar1: TProgressBar;
+    Layout41: TLayout;
+    btnMaquinas: TRectangle;
+    imgMaquina: TImage;
+    ShadowEffect9: TShadowEffect;
+    Label15: TLabel;
+    Rectangle11: TRectangle;
+    Layout42: TLayout;
+    Layout43: TLayout;
+    Label17: TLabel;
+    edtNumPatrimonio: TEdit;
+    ClearEditButton5: TClearEditButton;
     procedure btnEntrarMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Single);
     procedure btnEntrarMouseDown(Sender: TObject; Button: TMouseButton;
@@ -210,11 +235,16 @@ type
     procedure Image4Click(Sender: TObject);
     procedure cbxCentroCustoChange(Sender: TObject);
     procedure btnStatrFimDiarioClick(Sender: TObject);
+    procedure btnMovEstoqueClick(Sender: TObject);
+    procedure Layout13Click(Sender: TObject);
+    procedure btnMaquinasClick(Sender: TObject);
+    procedure FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
+      Shift: TShiftState);
   private
-    function NetState(out tipoConexao: string): boolean;
-    function CheckInternet: boolean;
     {$IF DEFINED(iOS) or DEFINED(ANDROID)}
      function  GetVersaoArq: string;
+     function NetState(out tipoConexao: string): boolean;
+     function CheckInternet: boolean;
     {$ENDIF}
     {$IFDEF MSWINDOWS}
      function  GetVersaoArqWin:string;
@@ -230,7 +260,8 @@ implementation
 
 {$R *.fmx}
 
-uses UDmDB, UDmSyncData, NetworkState, UAbastecimento, UStartBomba;
+uses UDmDB, UDmSyncData, NetworkState, UAbastecimento, UStartBomba, UMovEstoque,
+  Maquinas;
 
 procedure TfrmPrincipal.btnConfigClick(Sender: TObject);
 begin
@@ -319,9 +350,16 @@ begin
   edtPortaServidorDados.SetFocus;
   Exit;
  end;
+ if edtNumPatrimonio.Text.IsEmpty then
+ begin
+  ShowMessage('Informe o N° de Patrimônio');
+  edtNumPatrimonio.SetFocus;
+  Exit;
+ end;
  dmDB.qryConfig.Edit;
  dmdb.qryConfigIP_SERVIDOR.AsString      := edtIpServidorDados.Text;
  dmdb.qryConfigPOTA_SERVIDOR.AsString    := edtPortaServidorDados.Text;
+ dmdb.qryConfigPATRIMONIO.AsString       := edtNumPatrimonio.Text;
  try
    dmdb.qryConfig.ApplyUpdates(-1);
    dmSync.host  := edtIpServidorDados.Text;
@@ -330,38 +368,40 @@ begin
  on E : Exception do
    ShowMessage('Erro ao inserir Configuração : '+E.Message);
  end;
-//  if NOT NetState(tipoConexao) then
-//  begin
-//   ShowMessage('Sem conexão com Internet!!');
-//   Exit;
-//  end;
-   if dmdb.vPrimeiroAcesso then
-   begin
-    try
-       dmSync.GetCentroCusto;
-       vResult := dmSync.GetUsuario;
-       if vResult='Usuarios Baixados com Sucesso' then
-       begin
-           ShowMessage('Usuarios baixados com sucesso');
-           dmDB.vPrimeiroAcesso := false;
-           dmDB.FCon.Commit;
-           dmDB.TUsuario.Close;
-           dmDB.TUsuario.Open;
-           dmDB.TCentroCusto.Close;
-           dmDB.TCentroCusto.Open;
-           MudarAba(tbiLogin,Sender);
-       end
-       else
-       begin
-         ShowMessage(vResult);
-       end;
-     except
-     on E : Exception do
-       ShowMessage('Erro ao baixar Usuario: '+E.Message);
+ if dmdb.vPrimeiroAcesso then
+ begin
+  try
+     dmDB.vIdCentroCusto := dmSync.PostAutenticaPatrimonio(edtNumPatrimonio.Text);
+     if copy(dmDB.vIdCentroCusto,0,4)='Erro' then
+     begin
+      ShowMessage(dmDB.vIdCentroCusto);
+      Exit;
+     end
+     else
+     dmDB.AtualizaCentroCustoConfig(dmDB.vIdCentroCusto);
+     dmSync.GetCentroCusto(dmDB.vIdCentroCusto);
+     vResult := dmSync.GetUsuario;
+     if vResult='Usuarios Baixados com Sucesso' then
+     begin
+         ShowMessage('Usuarios baixados com sucesso');
+         dmDB.vPrimeiroAcesso := false;
+         dmDB.TUsuario.Close;
+         dmDB.TUsuario.Open;
+         dmDB.TCentroCusto.Close;
+         dmDB.TCentroCusto.Open;
+         MudarAba(tbiLogin,Sender);
+     end
+     else
+     begin
+       ShowMessage(vResult);
      end;
-   end
-   else
-    MudarAba(tbiMnu,Sender);
+   except
+   on E : Exception do
+     ShowMessage('Erro ao baixar Usuario: '+E.Message);
+   end;
+ end
+ else
+  MudarAba(tbiMnu,Sender);
 end;
 
 procedure TfrmPrincipal.btnConfirmarMouseDown(Sender: TObject;
@@ -393,6 +433,12 @@ begin
  begin
    ShowMessage('Informe o centro de Custo!');
    Exit;
+ end
+ else
+ begin
+   dmdb.qryConfig.Close;
+   dmdb.qryConfig.Open;
+   dmdb.vIdCentroCusto:=dmdb.qryConfigID_CENTRO_CUSTO.AsString;
  end;
  if dmDB.AutenticaUsuario(edtUsuario.Text,edtSenha.Text)then
  begin
@@ -405,6 +451,7 @@ begin
     dmdb.qryConfig.ApplyUpdates(-1);
     dmdb.SalvarAcesso(edtUsuario.Text,edtSenha.Text);
   end;
+  btnConfig.Visible := dmdb.vTipoUser='1';
   MudarAba(tbiMnu,sender);
   imgMnu.Position.Y := 0;
   imgMnu.Opacity := 0;
@@ -429,6 +476,7 @@ end;
 
 procedure TfrmPrincipal.btnEnviarClick(Sender: TObject);
 begin
+  ProgressBar1.Value :=0;
   if dmSync.TestaServidor<>'Erro' THEN
   begin
    Animacao.Start;
@@ -436,65 +484,89 @@ begin
    begin
     TThread.Synchronize(nil, procedure
     begin
-     mlog.Lines.Add('Enviando Start Diário');
+     mlog.text :=('Enviando Start Diário');
+     ProgressBar1.Value :=10;
     end);
-    mlog.Lines.Add(dmSync.PostStartDiario);
+    mlog.text :=(dmSync.PostStartDiario);
 
     TThread.Synchronize(nil, procedure
     begin
-     mlog.Lines.Add('Enviando Abastecimentos');
+     mlog.text :=('Enviando Abastecimentos');
+     ProgressBar1.Value :=20;
     end);
-    mlog.Lines.Add(dmSync.PostAbastecimento);
+    mlog.text :=(dmSync.PostAbastecimento);
 
-    TThread.Synchronize(nil, procedure
-    begin
-       mlog.Lines.Add('Enviando Abastecimentos Outros');
-    end);
-    mlog.Lines.Add(dmSync.PostAbastecimentoOutros);
-
-    TThread.Synchronize(nil, procedure
-    begin
-     mlog.Lines.Add('Baixando Usuarios...');
-    end);
-//    mlog.Lines.Add(dmSync.GetUsuario);
 //    TThread.Synchronize(nil, procedure
 //    begin
-//     mlog.Lines.Add('Baixando Operador de Maquina...');
+//       mlog.text :=('Enviando Abastecimentos Outros');
+//       ProgressBar1.Value :=30;
 //    end);
-//    mlog.Lines.Add(dmSync.GetOperadorMaquinas);
-//    TThread.Synchronize(nil, procedure
-//    begin
-//     mlog.Lines.Add('Baixando Atividade Abastecimento...');
-//    end);
-//    mlog.Lines.Add(dmSync.GetAtividadesAbastecimento);
-    TThread.Synchronize(nil, procedure
-    begin
-     mlog.Lines.Add('Baixando Centro de Custo...');
-    end);
-    mlog.Lines.Add(dmSync.GetCentroCusto);
-    TThread.Synchronize(nil, procedure
-    begin
-     mlog.Lines.Add('Baixando Local de Estoque...');
-    end);
-    mlog.Lines.Add(dmSync.GetLocalEstoque);
-    TThread.Synchronize(nil, procedure
-    begin
-     mlog.Lines.Add('Baixando Produtos...');
-    end);
-    mlog.Lines.Add(dmSync.GetProdutos);
-    TThread.Synchronize(nil, procedure
-    begin
-     mlog.Lines.Add('Baixando Maquinas...');
-    end);
-    mlog.Lines.Add(dmSync.GetMaquinas);
+//    mlog.text := (dmSync.PostAbastecimentoOutros);
 
     TThread.Synchronize(nil, procedure
     begin
+     mlog.text :=('Enviando Transferência');
+     ProgressBar1.Value :=40;
+    end);
+    mlog.text :=(dmSync.PostMovLocalEstoque);
+
+    TThread.Synchronize(nil, procedure
+    begin
+     mlog.text :=('Baixando Usuarios...');
+     ProgressBar1.Value :=50;
+    end);
+    mlog.text :=(dmSync.GetUsuario);
+
+    TThread.Synchronize(nil, procedure
+    begin
+     mlog.text :=('Baixando Centro Custo...');
+     ProgressBar1.Value :=70;
+    end);
+    mlog.text :=(dmSync.GetCentroCusto(dmDB.vIdCentroCusto));
+
+    TThread.Synchronize(nil, procedure
+    begin
+     mlog.text :=('Baixando Local de Estoque...');
+     ProgressBar1.Value :=70;
+    end);
+    mlog.text :=(dmSync.GetLocalEstoque(dmDB.vIdCentroCusto));
+
+    TThread.Synchronize(nil, procedure
+    begin
+     mlog.text :=('Baixando Produtos...');
+     ProgressBar1.Value :=80;
+    end);
+    mlog.text :=(dmSync.GetProdutos);
+
+    TThread.Synchronize(nil, procedure
+    begin
+     mlog.text :=('Baixando Maquinas...');
+     ProgressBar1.Value :=90;
+    end);
+    mlog.text :=(dmSync.GetMaquinas);
+
+
+    TThread.Synchronize(nil, procedure
+    begin
+     ProgressBar1.Value :=100;
      Animacao.Stop;
      dmDB.FCon.Commit;
      dmDB.FCon.Connected := false;
      dmDB.FCon.Connected;
-      MessageDlg('Dados Sincronizados com Sucesso!'+#13+
+
+     dmSync.TAbastecimento.Close;
+     dmSync.TAbastecimento.Open;
+     lblAbastecimentoPendente.Text   := 'Abastecimento Pendente :'+IntToStr(dmSync.TAbastecimento.RecordCount);
+
+     dmSync.TStartDiario.Close;
+     dmSync.TStartDiario.Open;
+     lblStartDiarioSync.Text        := 'Start Diário Pendente :'+IntToStr(dmSync.TStartDiario.RecordCount);
+
+     dmSync.TMovLocalEstoque.Close;
+     dmSync.TMovLocalEstoque.Open;
+     lblTrasnferenciaPendente.Text  := 'Transferência Pendente :'+IntToStr(dmSync.TMovLocalEstoque.RecordCount);
+
+     MessageDlg('Dados Sincronizados com Sucesso!'+#13+
       'Sistema deve ser reiniciado!', System.UITypes.TMsgDlgType.mtInformation,
        [System.UITypes.TMsgDlgBtn.mbYes], 0,
        procedure(const AResult: System.UITypes.TModalResult)
@@ -525,6 +597,27 @@ end;
 procedure TfrmPrincipal.btnFechaSyncClick(Sender: TObject);
 begin
  MudarAba(tbiMnu,sender);
+end;
+
+procedure TfrmPrincipal.btnMaquinasClick(Sender: TObject);
+begin
+ frmMaquinas:= TfrmMaquinas.Create(nil);
+  frmMaquinas.ShowModal(procedure(ModalResult: TModalResult)
+  begin
+    if ModalResult = mrOK then
+      frmMaquinas.DisposeOf;
+  end);
+end;
+
+procedure TfrmPrincipal.btnMovEstoqueClick(Sender: TObject);
+begin
+  dmDB.vTipoOp :=3;
+  frmMovEstoque:= TfrmMovEstoque.Create(nil);
+  frmMovEstoque.ShowModal(procedure(ModalResult: TModalResult)
+  begin
+    if ModalResult = mrOK then
+      frmMovEstoque.DisposeOf;
+  end);
 end;
 
 procedure TfrmPrincipal.btnAbastecimentoClick(Sender: TObject);
@@ -560,7 +653,14 @@ begin
  dmSync.TStartDiario.Close;
  dmSync.TStartDiario.Open;
  lblStartDiarioSync.Text        := 'Start Diário Pendente :'+IntToStr(dmSync.TStartDiario.RecordCount);
+
+ dmSync.TMovLocalEstoque.Close;
+ dmSync.TMovLocalEstoque.Open;
+ lblTrasnferenciaPendente.Text  := 'Transferência Pendente :'+IntToStr(dmSync.TMovLocalEstoque.RecordCount);
+
  MudarAba(tbiSync,sender);
+
+
 end;
 
 procedure TfrmPrincipal.cbxCentroCustoChange(Sender: TObject);
@@ -585,6 +685,17 @@ begin
     end;
 end;
 
+procedure TfrmPrincipal.FormKeyUp(Sender: TObject; var Key: Word;
+  var KeyChar: Char; Shift: TShiftState);
+var
+  KeyboardService: IFMXVirtualKeyboardService;
+begin
+ if Key = vkHardwareBack then
+ begin
+   key := 0;
+ end;
+end;
+
 procedure TfrmPrincipal.FormShow(Sender: TObject);
 begin
  TThread.CreateAnonymousThread(procedure
@@ -597,7 +708,7 @@ begin
       {$ENDIF}
       {$IF DEFINED(iOS) or DEFINED(ANDROID)}
         lblversao.text                 := GetVersaoArq;
-//        dmdb.CreateTablesVersao(GetVersaoArq);
+        dmdb.CreateTablesVersao(GetVersaoArq);
       {$ENDIF}
       TbPrincipal.TabPosition := TTabPosition.None;
       rect_update.Visible := true;
@@ -631,13 +742,19 @@ begin
  end
  else
   chkSalvaSenha.IsChecked := false;
-
  dmSync.host  := dmDB.qryConfigIP_SERVIDOR.AsString;
  dmSync.Porta := dmDB.qryConfigPOTA_SERVIDOR.AsString;
  dmDB.TUsuario.Close;
  dmDB.TUsuario.Open;
  dmDB.TCentroCusto.Close;
  dmDB.TCentroCusto.Open;
+ if not dmDB.TCentroCusto.IsEmpty then
+ begin
+  dmdb.vIdCentroCusto      := dmDB.TCentroCustoid.AsString;
+  cbxCentroCusto.ItemIndex :=0;
+  cbxCentroCusto.Enabled := false;
+ end;
+
  if dmDB.TUsuario.IsEmpty then
  begin
    dmDB.vPrimeiroAcesso   := true;
@@ -667,6 +784,11 @@ end;
 procedure TfrmPrincipal.Image4Click(Sender: TObject);
 begin
  Close;
+end;
+
+procedure TfrmPrincipal.Layout13Click(Sender: TObject);
+begin
+
 end;
 
 {$IF DEFINED(iOS) or DEFINED(ANDROID)}

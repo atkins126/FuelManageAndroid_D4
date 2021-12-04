@@ -183,7 +183,6 @@ type
     Rectangle5: TRectangle;
     Layout12: TLayout;
     Label11: TLabel;
-    SearchEditButton1: TSearchEditButton;
     ClearEditButton1: TClearEditButton;
     Timer1: TTimer;
     GestureManager2: TGestureManager;
@@ -207,7 +206,6 @@ type
     edtLitros: TEdit;
     edtLitrosFim: TEdit;
     procedure EditButton1Click(Sender: TObject);
-    procedure SearchEditButton1Click(Sender: TObject);
     procedure tbPrincipalChange(Sender: TObject);
     procedure btnBuscarClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -230,10 +228,15 @@ type
     procedure btnSalvarFotoClick(Sender: TObject);
     procedure ListaItemClickEx(const Sender: TObject; ItemIndex: Integer;
       const LocalClickPos: TPointF; const ItemObject: TListItemDrawable);
+    procedure FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
+      Shift: TShiftState);
+    procedure edtLitrosTyping(Sender: TObject);
+    procedure edtLitrosFimTyping(Sender: TObject);
   private
     { Private declarations }
+     FService : IFMXVirtualKeyboardService;
      FImageStream: TStringStream;
-    PermissaoCamera, PermissaoReadStorage, PermissaoWriteStorage : string;
+     PermissaoCamera, PermissaoReadStorage, PermissaoWriteStorage : string;
     {$IFDEF ANDROID}
     procedure TakePicturePermissionRequestResult(
         Sender: TObject; const APermissions: TArray<string>;
@@ -273,7 +276,7 @@ implementation
 
 {$R *.fmx}
 
-uses UPrincipal, ULocalEstoque, UDmDB, UProdutos;
+uses UPrincipal, ULocalEstoque, UDmDB, UProdutos, uFormat;
 
 procedure TfrmStartBomba.btnBuscarClick(Sender: TObject);
 var
@@ -281,7 +284,7 @@ var
 begin
  vFiltro := ' and s.dataastart='+FormatDateTime('yyyy-mm-dd',edtDataF.DateTime).QuotedString;
  if edtLocalEstoqueF.Text.Length>0 then
-  vFiltro := vFiltro+' and l.id='+vIdLocalEstoque;
+  vFiltro := vFiltro+' and l.nome like '+QuotedStr('%'+edtLocalEstoqueF.Text+'%') ;
  GeraLista(vFiltro);
 end;
 
@@ -298,6 +301,9 @@ begin
 end;
 
 procedure TfrmStartBomba.btnConfirmarAClick(Sender: TObject);
+var
+ vTotalizadorIni,
+ vTotalizadorFim:Double;
 begin
  if edtLocalEstoque.Text.Length=0 then
  begin
@@ -312,26 +318,17 @@ begin
    ShowMessage('Foto do Inicio é Obrigatoria!!');
    Exit;
   end;
-  if(StrToFloat(edtLitros.text)=0)and(vStart=0)then
+  if(edtLitros.text.Length=0)or (edtLitros.text='0')then
   begin
-   MessageDlg('O Volume em litros Inicial esta zerado deseja confirmar assim mesmo?', System.UITypes.TMsgDlgType.mtInformation,
-   [System.UITypes.TMsgDlgBtn.mbYes,
-    System.UITypes.TMsgDlgBtn.mbNo
-   ], 0,
-   procedure(const AResult: System.UITypes.TModalResult)
-   begin
-    case AResult of
-     mrNo:
-     begin
-      Exit;
-     end;
-    end;
-   end);
+   ShowMessage('Totalizado Inicial deve ser informado!');
+   exit;
   end;
+  vTotalizadorIni := StrToFloat(StringReplace(edtLitros.Text,'.','',[rfReplaceAll]));
+
   dmdb.TStartBombaInsertidlocalestoque.AsString         := vIdLocalEstoque;
   dmdb.TStartBombaInsertdataastart.AsString             := edtData.Text;
   dmdb.TStartBombaInserthorastart.AsString              := edtHora.Text;
-  dmdb.TStartBombaInsertvolumelitrosIni.AsFloat         := StrToFloat(edtLitros.Text);
+  dmdb.TStartBombaInsertvolumelitrosIni.AsFloat         := vTotalizadorIni;
   dmdb.TStartBombaInsertimgStart.AsString               := vImg64Start;
   dmdb.TStartBombaInserthorastart.AsString              := edtHora.Text;
   dmdb.TStartBombaInsertidusuario.AsString              := dmDB.vIdUser;
@@ -345,25 +342,18 @@ begin
    ShowMessage('Foto do Fim é Obrigatoria!!');
    Exit;
   end;
-  if(StrToFloat(edtLitrosFim.text)=0)and(vStart=1)then
+  if(edtLitrosFim.Text.Length=0)or(edtLitrosFim.Text='0')then
   begin
-   MessageDlg('O Volume em litros Final esta zerado deseja confirmar assim mesmo?', System.UITypes.TMsgDlgType.mtInformation,
-   [System.UITypes.TMsgDlgBtn.mbYes,
-    System.UITypes.TMsgDlgBtn.mbNo
-   ], 0,
-   procedure(const AResult: System.UITypes.TModalResult)
-   begin
-    case AResult of
-     mrNo:
-     begin
-      Exit;
-     end;
-    end;
-   end);
-  end;
+   ShowMessage('Totalizador final deve ser informado!');
+   Exit;
+  end
+  else
+   vTotalizadorFim := StrToFloat(
+     StringReplace(edtLitrosFim.Text,'.','',[rfReplaceAll]));
+
   dmdb.TStartbombaInsertstatus.AsInteger := 2;
   if edtLitrosFim.Text.Length>0 then
-  dmdb.TStartBombaInsertvolumelitrosFim.AsFloat        := StrToFloat(edtLitrosFim.Text);
+   dmdb.TStartBombaInsertvolumelitrosFim.AsFloat :=vTotalizadorFim;
   if vImg64Stop.Length>0 then
   dmdb.TStartBombaInsertimgEnd.AsString                := vImg64Stop;
   dmdb.TStartBombaInserthoraend.AsString               := edtHoraFim.Text;
@@ -577,6 +567,16 @@ begin
   end;
 end;
 
+procedure TfrmStartBomba.edtLitrosFimTyping(Sender: TObject);
+begin
+  formatar(edtLitros,TFormato.Valor);
+end;
+
+procedure TfrmStartBomba.edtLitrosTyping(Sender: TObject);
+begin
+ formatar(edtLitros,TFormato.Valor);
+end;
+
 procedure TfrmStartBomba.FormCreate(Sender: TObject);
 begin
  {$IFDEF ANDROID}
@@ -590,6 +590,20 @@ end;
 procedure TfrmStartBomba.FormDestroy(Sender: TObject);
 begin
  permissao.DisposeOf;
+end;
+
+procedure TfrmStartBomba.FormKeyUp(Sender: TObject; var Key: Word;
+  var KeyChar: Char; Shift: TShiftState);
+var
+  KeyboardService: IFMXVirtualKeyboardService;
+begin
+ if Key = vkHardwareBack then
+ begin
+   if TPlatformServices.Current.SupportsPlatformService(IFMXVirtualKeyboardService,
+    IInterface(KeyboardService)) then
+    KeyboardService.HideVirtualKeyboard;
+   key := 0;
+ end;
 end;
 
 procedure TfrmStartBomba.FormShow(Sender: TObject);
@@ -637,12 +651,12 @@ begin
 
 
        txt      := TListItemText(Objects.FindDrawable('Text8'));
-       txt.Text := 'Litros Start: ';
+       txt.Text := 'Totalizador Start: ';
        txt      := TListItemText(Objects.FindDrawable('Text9'));
        txt.Text := dmDB.TStartbombavolumelitrosIni.AsString;
 
        txt      := TListItemText(Objects.FindDrawable('Text10'));
-       txt.Text := 'Litros Fim: ';
+       txt.Text := 'Totalizador Fim: ';
        txt      := TListItemText(Objects.FindDrawable('Text11'));
        txt.Text := dmDB.TStartbombavolumelitrosFim.AsString;
 
@@ -768,21 +782,6 @@ end;
 procedure TfrmStartBomba.Rectangle27Click(Sender: TObject);
 begin
  MudarAba(tbiCad,sender);
-end;
-
-procedure TfrmStartBomba.SearchEditButton1Click(Sender: TObject);
-begin
-  frmLocalEstoque := TfrmLocalEstoque.Create(Self);
-  try
-    frmLocalEstoque.ShowModal(
-    procedure(ModalResult: TModalResult)
-    begin
-      edtLocalEstoqueF.Text  := dmDB.vNomeLocalEstoque;
-      vIdLocalEstoque        := dmDB.vIdLocalEstoqueSel;
-    end);
-  finally
-    frmLocalEstoque.free;
-  end;
 end;
 
 procedure TfrmStartBomba.TakePicturePermissionRequestResult(Sender: TObject;

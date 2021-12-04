@@ -1,7 +1,7 @@
 object dmsync: Tdmsync
   OldCreateOrder = False
-  Height = 357
-  Width = 530
+  Height = 427
+  Width = 595
   object IdHTTP1: TIdHTTP
     ProxyParams.BasicAuthentication = False
     ProxyParams.ProxyPort = 0
@@ -10,8 +10,10 @@ object dmsync: Tdmsync
     Request.ContentRangeStart = -1
     Request.ContentRangeInstanceLength = -1
     Request.Accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-    Request.BasicAuthentication = False
+    Request.BasicAuthentication = True
+    Request.Password = '991528798'
     Request.UserAgent = 'Mozilla/3.0 (compatible; Indy Library)'
+    Request.Username = 'fuelmanage'
     Request.Ranges.Units = 'bytes'
     Request.Ranges = <>
     HTTPOptions = [hoForceEncodeParams]
@@ -456,86 +458,20 @@ object dmsync: Tdmsync
       FieldName = 'id'
       Origin = 'id'
       ProviderFlags = [pfInUpdate, pfInWhere, pfInKey]
-      Required = True
     end
     object TMaquinasstatus: TWideStringField
       FieldName = 'status'
       Origin = 'status'
-      Required = True
-      Size = 32767
-    end
-    object TMaquinasdatareg: TWideStringField
-      FieldName = 'datareg'
-      Origin = 'datareg'
-      Required = True
       Size = 32767
     end
     object TMaquinasidusuario: TWideStringField
       FieldName = 'idusuario'
       Origin = 'idusuario'
-      Required = True
-      Size = 32767
-    end
-    object TMaquinasdataalteracao: TWideStringField
-      FieldName = 'dataalteracao'
-      Origin = 'dataalteracao'
-      Size = 32767
-    end
-    object TMaquinasidusuarioalteracao: TWideStringField
-      FieldName = 'idusuarioalteracao'
-      Origin = 'idusuarioalteracao'
-      Size = 32767
-    end
-    object TMaquinasidmarca: TWideStringField
-      FieldName = 'idmarca'
-      Origin = 'idmarca'
-      Size = 32767
-    end
-    object TMaquinasmodelo: TStringField
-      FieldName = 'modelo'
-      Origin = 'modelo'
-      Required = True
-      Size = 50
-    end
-    object TMaquinasplaca: TStringField
-      FieldName = 'placa'
-      Origin = 'placa'
-    end
-    object TMaquinasano: TWideStringField
-      FieldName = 'ano'
-      Origin = 'ano'
-      Size = 32767
-    end
-    object TMaquinaschassi: TStringField
-      FieldName = 'chassi'
-      Origin = 'chassi'
-      Size = 30
-    end
-    object TMaquinasidcombustivel: TWideStringField
-      FieldName = 'idcombustivel'
-      Origin = 'idcombustivel'
-      Size = 32767
-    end
-    object TMaquinasimg: TWideStringField
-      FieldName = 'img'
-      Origin = 'img'
       Size = 32767
     end
     object TMaquinasprefixo: TStringField
       FieldName = 'prefixo'
       Origin = 'prefixo'
-    end
-    object TMaquinassyncaws: TWideStringField
-      FieldName = 'syncaws'
-      Origin = 'syncaws'
-      Required = True
-      Size = 32767
-    end
-    object TMaquinassyncfaz: TWideStringField
-      FieldName = 'syncfaz'
-      Origin = 'syncfaz'
-      Required = True
-      Size = 32767
     end
     object TMaquinasultimoabastecimento: TDateField
       FieldName = 'ultimoabastecimento'
@@ -557,27 +493,28 @@ object dmsync: Tdmsync
       FieldName = 'qrcode'
       Origin = 'qrcode'
     end
-    object TMaquinasidgrupo: TWideStringField
-      FieldName = 'idgrupo'
-      Origin = 'idgrupo'
-      Size = 32767
-    end
     object TMaquinaskmatual: TBCDField
       FieldName = 'kmatual'
       Origin = 'kmatual'
       Precision = 15
       Size = 3
     end
-    object TMaquinasidsubgrupo: TWideStringField
-      FieldName = 'idsubgrupo'
-      Origin = 'idsubgrupo'
-      Size = 32767
-    end
     object TMaquinastipomedicao: TWideStringField
       FieldName = 'tipomedicao'
       Origin = 'tipomedicao'
-      Required = True
       Size = 32767
+    end
+    object TMaquinasvolumetanque: TBCDField
+      FieldName = 'volumetanque'
+      Origin = 'volumetanque'
+      Precision = 15
+      Size = 2
+    end
+    object TMaquinasmodelo: TStringField
+      FieldName = 'modelo'
+      Origin = 'modelo'
+      Required = True
+      Size = 50
     end
   end
   object TAbastecimento: TFDQuery
@@ -731,6 +668,15 @@ object dmsync: Tdmsync
       Origin = 'longitude'
       Precision = 9
       Size = 6
+    end
+    object TAbastecimentoalerta: TIntegerField
+      FieldName = 'alerta'
+      Origin = 'alerta'
+    end
+    object TAbastecimentodescricaoalerta: TWideMemoField
+      FieldName = 'descricaoalerta'
+      Origin = 'descricaoalerta'
+      BlobType = ftWideMemo
     end
   end
   object TAbastecimentoOutros: TFDQuery
@@ -921,5 +867,90 @@ object dmsync: Tdmsync
     Connection = dmDB.FCon
     Left = 56
     Top = 304
+  end
+  object TMovLocalEstoque: TFDQuery
+    CachedUpdates = True
+    Connection = dmDB.FCon
+    SQL.Strings = (
+      'select '
+      ' a.*'
+      'from tranferencialocalestoque a'
+      'where syncaws=0')
+    Left = 195
+    Top = 288
+    object TMovLocalEstoqueid: TIntegerField
+      FieldName = 'id'
+      Origin = 'id'
+      ProviderFlags = [pfInUpdate, pfInWhere, pfInKey]
+      Required = True
+    end
+    object TMovLocalEstoquestatus: TWideStringField
+      FieldName = 'status'
+      Origin = 'status'
+      Required = True
+      Size = 32767
+    end
+    object TMovLocalEstoquedatareg: TWideStringField
+      FieldName = 'datareg'
+      Origin = 'datareg'
+      Required = True
+      Size = 32767
+    end
+    object TMovLocalEstoqueidusuario: TWideStringField
+      FieldName = 'idusuario'
+      Origin = 'idusuario'
+      Required = True
+      Size = 32767
+    end
+    object TMovLocalEstoquedataalteracao: TWideStringField
+      FieldName = 'dataalteracao'
+      Origin = 'dataalteracao'
+      Size = 32767
+    end
+    object TMovLocalEstoqueidusuarioalteracao: TWideStringField
+      FieldName = 'idusuarioalteracao'
+      Origin = 'idusuarioalteracao'
+      Size = 32767
+    end
+    object TMovLocalEstoqueidlocalestoqueorigem: TWideStringField
+      FieldName = 'idlocalestoqueorigem'
+      Origin = 'idlocalestoqueorigem'
+      Required = True
+      Size = 32767
+    end
+    object TMovLocalEstoqueidlocalestoquedetino: TWideStringField
+      FieldName = 'idlocalestoquedetino'
+      Origin = 'idlocalestoquedetino'
+      Required = True
+      Size = 32767
+    end
+    object TMovLocalEstoqueidproduto: TWideStringField
+      FieldName = 'idproduto'
+      Origin = 'idproduto'
+      Required = True
+      Size = 32767
+    end
+    object TMovLocalEstoqueqtde: TBCDField
+      FieldName = 'qtde'
+      Origin = 'qtde'
+      Precision = 15
+      Size = 3
+    end
+    object TMovLocalEstoquedatamov: TDateField
+      FieldName = 'datamov'
+      Origin = 'datamov'
+      Required = True
+    end
+    object TMovLocalEstoquehora: TTimeField
+      FieldName = 'hora'
+      Origin = 'hora'
+      Required = True
+    end
+    object TMovLocalEstoquesyncaws: TWideStringField
+      FieldName = 'syncaws'
+      Origin = 'syncaws'
+      Required = True
+      Size = 32767
+    end
   end
 end

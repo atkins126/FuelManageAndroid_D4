@@ -14,7 +14,9 @@ uses
   UStartBomba in '..\StartBomba\UStartBomba.pas' {frmStartBomba},
   u99Permissions in '..\util\u99Permissions.pas',
   UnitCamera in '..\Camera\UnitCamera.pas' {FrmCamera},
-  NetworkState.Android in '..\util\NetworkState.Android.pas';
+  NetworkState.Android in '..\util\NetworkState.Android.pas',
+  UMovEstoque in '..\MovEstoque\UMovEstoque.pas' {frmMovEstoque},
+  uFormat in '..\util\uFormat.pas';
 
 {$R *.res}
 
@@ -30,5 +32,6 @@ begin
   Application.CreateForm(TfrmProdutos, frmProdutos);
   Application.CreateForm(TfrmStartBomba, frmStartBomba);
   Application.CreateForm(TFrmCamera, FrmCamera);
+  Application.CreateForm(TfrmMovEstoque, frmMovEstoque);
   Application.Run;
 end.

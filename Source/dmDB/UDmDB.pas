@@ -9,7 +9,7 @@ uses
   FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Phys, FireDAC.Phys.SQLite,
   FireDAC.Phys.SQLiteDef, FireDAC.Stan.ExprFuncs, FireDAC.FMXUI.Wait, Data.DB,
   FireDAC.Comp.Client, FireDAC.Comp.DataSet,System.IOUtils,FMX.Dialogs,
-  FireDAC.Phys.SQLiteWrapper.Stat;
+  FireDAC.Phys.SQLiteWrapper.Stat,StrUtils;
 
 type
   TdmDB = class(TDataModule)
@@ -155,19 +155,6 @@ type
     TProdutoscustomedio: TBCDField;
     TProdutossaldoatual: TBCDField;
     TMovLocalEstoque: TFDQuery;
-    TMovLocalEstoqueid: TIntegerField;
-    TMovLocalEstoquestatus: TWideStringField;
-    TMovLocalEstoquedatareg: TWideStringField;
-    TMovLocalEstoqueidusuario: TWideStringField;
-    TMovLocalEstoquedataalteracao: TWideStringField;
-    TMovLocalEstoqueidusuarioalteracao: TWideStringField;
-    TMovLocalEstoqueidlocalestoqueorigem: TWideStringField;
-    TMovLocalEstoqueidlocalestoquedetino: TWideStringField;
-    TMovLocalEstoqueidproduto: TWideStringField;
-    TMovLocalEstoqueqtde: TBCDField;
-    TMovLocalEstoquedatamov: TDateField;
-    TMovLocalEstoquehora: TTimeField;
-    TMovLocalEstoquesyncaws: TWideStringField;
     TUsuario: TFDQuery;
     TUsuarioid: TIntegerField;
     TUsuariostatus: TWideStringField;
@@ -251,6 +238,27 @@ type
     TAbastecimentoCombustivelNome: TStringField;
     TAbastecimentoLocalEstoque: TStringField;
     TAbastecimentoMaquina: TStringField;
+    TMovLocalEstoqueid: TIntegerField;
+    TMovLocalEstoquestatus: TWideStringField;
+    TMovLocalEstoquedatareg: TWideStringField;
+    TMovLocalEstoqueidusuario: TWideStringField;
+    TMovLocalEstoquedataalteracao: TWideStringField;
+    TMovLocalEstoqueidusuarioalteracao: TWideStringField;
+    TMovLocalEstoqueidlocalestoqueorigem: TWideStringField;
+    TMovLocalEstoqueidlocalestoquedetino: TWideStringField;
+    TMovLocalEstoqueidproduto: TWideStringField;
+    TMovLocalEstoqueqtde: TBCDField;
+    TMovLocalEstoquedatamov: TDateField;
+    TMovLocalEstoquehora: TTimeField;
+    TMovLocalEstoquesyncaws: TWideStringField;
+    TMovLocalEstoqueLocalOrigem: TStringField;
+    TMovLocalEstoqueLocalDestino: TStringField;
+    TMovLocalEstoqueProduto: TStringField;
+    TAbastecimentoalerta: TIntegerField;
+    TAbastecimentodescricaoalerta: TWideMemoField;
+    qryConfigID_CENTRO_CUSTO: TIntegerField;
+    qryConfigPATRIMONIO: TIntegerField;
+    TMaquinasvolumetanque: TBCDField;
     procedure TstartBombaReconcileError(DataSet: TFDDataSet; E: EFDException;
       UpdateKind: TFDDatSRowState; var Action: TFDDAptReconcileAction);
     procedure FConBeforeConnect(Sender: TObject);
@@ -263,15 +271,18 @@ type
     procedure TAbastecimentoFotoReconcileError(DataSet: TFDDataSet;
       E: EFDException; UpdateKind: TFDDatSRowState;
       var Action: TFDDAptReconcileAction);
+    procedure TMovLocalEstoqueReconcileError(DataSet: TFDDataSet;
+      E: EFDException; UpdateKind: TFDDatSRowState;
+      var Action: TFDDAptReconcileAction);
   private
 
   public
-    vIdMaquinaSel,vMarcaModelo:string;
+    vIdMaquinaSel,vMarcaModelo, vUltimoHorimetro,vUltimoKM:string;
     vIdCentroCusto,vIdUser,vIdProduto,vNomeProduto,vCodFabricanteProduto,
     vNomeOperador,vIdOperador,vIdAtividade,vNomeAtividade,
-    vNomeLocalEstoque,vIdLocalEstoqueSel:string;
+    vNomeLocalEstoque,vIdLocalEstoqueSel,vTipoUser:string;
     vPrimeiroAcesso:Boolean;
-    vTipoOp:integer;//1= start bomba 2= abastecimento
+    vTipoOp,vLocalMov:integer;//1= start bomba 2= abastecimento
     procedure CreateTablesVersao(NumeroVersao: string);
     function  VerificaTabelaExiste(Atabela: string): Boolean;
     function  VerificaCampoExiste(Acampo, Atabela: string):Boolean;
@@ -293,6 +304,12 @@ type
     function  VerificaStartAberto(vIdLocal:string):Boolean;
     function RetornaIdAbastecimento:integer;
     function VerificaIDExite(Atabela,AId:string):Boolean;
+    procedure AbrirTrasnferencia(vFiltro:string);
+    procedure DeletaTransferencia(vIdTransferencia:string);
+    function RetornaSaldoAtualDia(vIdLocal:string):string;
+    procedure AtualizaCentroCustoConfig(idCentro:string);
+    procedure RetornaUltimoKMHorimetro(vIdMaquina:string);
+
   end;
 
 var
@@ -336,6 +353,13 @@ begin
 end;
 
 procedure TdmDB.TAbastecimentoOutrosReconcileError(DataSet: TFDDataSet;
+  E: EFDException; UpdateKind: TFDDatSRowState;
+  var Action: TFDDAptReconcileAction);
+begin
+  ShowMessage(e.Message);
+end;
+
+procedure TdmDB.TMovLocalEstoqueReconcileError(DataSet: TFDDataSet;
   E: EFDException; UpdateKind: TFDDatSRowState;
   var Action: TFDDAptReconcileAction);
 begin
@@ -438,15 +462,22 @@ begin
 end;
 
 function TdmDB.AbriMaquinaPrefixo(qrcode: string): Boolean;
+var
+ vqrcodeInt:integer;
 begin
- with TMaquinas,TMaquinas.SQL do
+ if TryStrToInt(qrcode,vqrcodeInt) then
  begin
-   Clear;
-   Add('select * from maquinaveiculo where qrcode=:qrcode');
-   ParamByName('qrcode').AsString := qrcode;
-   Open;
-   Result := TMaquinas.IsEmpty;
- end;
+   with TMaquinas,TMaquinas.SQL do
+   begin
+     Clear;
+     Add('select * from maquinaveiculo where qrcode=:qrcode');
+     ParamByName('qrcode').AsInteger := vqrcodeInt;
+     Open;
+     Result := TMaquinas.IsEmpty;
+   end;
+ end
+ else
+  Result := true;
 end;
 
 procedure TdmDB.AbrirAbastecimento(vFiltro: string);
@@ -522,6 +553,7 @@ begin
    Add('WHERE s.status>-1');
    Add('and s.idcentrocusto='+vIdCentroCusto);
    Add(vFiltro);
+   Add('Order by dataastart desc');
    Open;
  end;
 end;
@@ -536,6 +568,40 @@ begin
    Add(vFiltro);
    Open;
  end;
+end;
+
+procedure TdmDB.AbrirTrasnferencia(vFiltro: string);
+begin
+  with TMovLocalEstoque,TMovLocalEstoque.SQL do
+  begin
+    Clear;
+    Add('select');
+    Add('a.*,o.nome LocalOrigem,');
+    Add('d.nome LocalDestino,');
+    Add('p.nome Produto');
+    Add('from tranferencialocalestoque a');
+    Add('join localestoque o on o.id=a.idlocalestoqueorigem');
+    Add('join localestoque d on d.id=a.idlocalestoquedetino');
+    Add('join produtos p ON o.idcentrocusto=p.id');
+    Add('where a.status=1');
+    Add(vFiltro);
+    Open;
+  end;
+end;
+
+procedure TdmDB.AtualizaCentroCustoConfig(idCentro: string);
+var
+ qryAux : TFDQuery;
+begin
+ qryAux := TFDQuery.Create(nil);
+ qryAux.Connection := FCon;
+ with qryAux,qryAux.sql do
+ begin
+   Clear;
+   Add('update config set ID_CENTRO_CUSTO='+idCentro);
+   ExecSQL;
+ end;
+ qryAux.free;
 end;
 
 procedure TdmDB.DeletaAbastecimentoOutros(vId:string);
@@ -586,6 +652,22 @@ begin
  qryAux.free;
 end;
 
+procedure TdmDB.DeletaTransferencia(vIdTransferencia: string);
+var
+ qryAux : TFDQuery;
+begin
+ qryAux := TFDQuery.Create(nil);
+ qryAux.Connection := FCon;
+ with qryAux,qryAux.sql do
+ begin
+   Clear;
+   Add('delete from tranferenciaLocalestoque');
+   Add('WHERE ID='+vIdTransferencia);
+   ExecSQL;
+ end;
+ qryAux.free;
+end;
+
 procedure TdmDB.FConBeforeConnect(Sender: TObject);
 var
  vPath:string;
@@ -622,6 +704,78 @@ begin
   Result :=vid;
 end;
 
+function TdmDB.RetornaSaldoAtualDia(vIdLocal: string): string;
+var
+ qryAux : TFDQuery;
+begin
+ qryAux := TFDQuery.Create(nil);
+ qryAux.Connection := FCon;
+ with qryAux,qryAux.sql do
+ begin
+  Clear;
+  Add('select');
+  Add('coalesce(a.volumelitrosIni,0)-');
+  Add('coalesce((select sum(b.volumelt)');
+  Add('from abastecimento b');
+  Add('where dataabastecimento='+FormatDateTime('yyyy-mm-dd',date).QuotedString);
+  Add('and b.idlocalestoque='+vIdLocal+'),0) saldoAtual');
+  Add('from startbomba a');
+  Add('where idlocalestoque='+vIdLocal);
+  Add('and a.dataastart='+FormatDateTime('yyyy-mm-dd',date).QuotedString);
+  Open;
+  if IsEmpty then
+   Result :='0'
+  else
+   Result := FieldByName('saldoAtual').AsString;
+ end;
+ qryAux.Free;
+end;
+
+procedure TdmDB.RetornaUltimoKMHorimetro(vIdMaquina: string);
+var
+ qryAux : TFDQuery;
+ vMaxHAabastecimento,vMaxHMaquina,
+ vMaxKAbastecimento,vMaxKMaquina :double;
+ vUltimoAbastece,vUltimoAbastecimentoMaquina:TDateTime;
+begin
+ qryAux := TFDQuery.Create(nil);
+ qryAux.Connection := FCon;
+ with qryAux,qryAux.sql do
+ begin
+  Clear;
+  Add('select');
+  Add('coalesce(max(horimetro),0) maxHorimetro,');
+  Add('coalesce(max(kmatual),0) maxkm,');
+  Add('max(dataabastecimento) maxDataAbastecimento');
+  Add('from abastecimento a');
+  Add('where status=1 and idmaquina='+vIdMaquina);
+  Open;
+  vMaxHAabastecimento  := FieldByName('maxHorimetro').AsFloat;
+  vMaxKAbastecimento   := FieldByName('maxkm').AsFloat;
+
+  Clear;
+  Add('select');
+  Add('*');
+  Add('from maquinaveiculo a');
+  Add('where id='+vIdMaquina);
+  Open;
+  vMaxHMaquina  := FieldByName('horimetroatual').AsFloat;
+  vMaxKMaquina  := FieldByName('kmatual').AsFloat;
+
+
+  if vMaxHAabastecimento> vMaxHMaquina then
+   vUltimoHorimetro := FloatToStr(vMaxHAabastecimento)
+  else
+   vUltimoHorimetro := FloatToStr(vMaxHMaquina);
+
+  if vMaxKAbastecimento>vMaxKMaquina then
+   vUltimoKM  := FloatToStr(vMaxKAbastecimento)
+  else
+   vUltimoKM  := FloatToStr(vMaxKMaquina);
+ end;
+ qryAux.Free;
+end;
+
 function TdmDB.AutenticaUsuario(Usuario, Senha: string): Boolean;
 var
  qryAux : TFDQuery;
@@ -638,6 +792,7 @@ begin
   if not qryAux.IsEmpty then
    begin
     vIdUser          := qryAux.FieldByName('id').AsString;
+    vTipoUser        := qryAux.FieldByName('tipo').AsString;
     Result := true
    end
    else
@@ -664,194 +819,19 @@ var
 begin
  vQryAux:=TFDQuery.Create(nil);
  vQryAux.Connection := FCon;
-
-    if VerificaCampoExiste('abastecimento','') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE abastecimento (id integer NOT NULL PRIMARY KEY, status int4 NOT NULL DEFAULT 1,');
-      Add('datareg timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP, idusuario int4 NOT NULL, dataalteracao timestamptz,');
-      Add('idusuarioalteracao int4, idlocalestoque int4 NOT NULL, idmaquina int4 NOT NULL, idoperador int4 NOT NULL,');
-      Add('volumelt numeric (15, 3), combustivel int4 NOT NULL, dataabastecimento date NOT NULL, hora time NOT NULL,');
-      Add('syncaws int4 NOT NULL DEFAULT 0, horimetro numeric (15, 3), idatividade int4, obs varchar (100), img TEXT,');
-      Add('img2 TEXT, img3 TEXT, img4 TEXT, img5 TEXT, valorlitro numeric (15, 3), externo int4 NOT NULL DEFAULT 0,');
-      Add('idcentrocusto INTEGER NOT NULL, kmatual numeric (15, 3),');
-      Add('latitude decimal (9, 6), longitude decimal (9, 6))');
-      ExecSQL;
-    end;
-
-
- if NumeroVersao='1.0.3' then
+ if not VerificaCampoExiste('volumetanque','maquinaveiculo') then
+ with vQryAux,vQryAux.SQL do
  begin
-    if VerificaTabelaExiste('usuario') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE usuario ( id integer NOT NULL, status int4 NOT NULL DEFAULT 1,');
-      Add('datareg timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP, idusuario int4 NOT NULL,');
-      Add('dataalteracao timestamptz NULL, idusuarioalteracao int4 NULL, nome varchar(100) NOT NULL,');
-      Add('email varchar(100) NULL, celular varchar(20) NULL, usuario varchar(25) NOT NULL,');
-      Add('senha varchar(50) NOT NULL, tipo int4 NOT NULL, syncaws int4 NOT NULL DEFAULT 0,');
-      Add('CONSTRAINT usuarios_pk PRIMARY KEY (id))');
-      ExecSQL;
-    end;
-    if VerificaTabelaExiste('centrocusto') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE centrocusto ( id integer NOT NULL, status int4 NOT NULL DEFAULT 1,');
-      Add('datareg timestamptz DEFAULT CURRENT_TIMESTAMP, idusuario int4 NULL,');
-      Add('dataalteracao timestamptz NULL, idusuarioalteracao int4 NULL,');
-      Add('nome varchar(50) NULL, syncaws int4 NOT NULL DEFAULT 0,');
-      Add('CONSTRAINT centrocusto_pkey PRIMARY KEY (id)');
-      Add(')');
-      ExecSQL;
-    end;
-    if VerificaTabelaExiste('centrocusto') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE auxatividadeabastecimento ( id integer NOT NULL, status int4 NOT NULL DEFAULT 1,');
-      Add('datareg timestamptz DEFAULT CURRENT_TIMESTAMP, idusuario int4 NULL,');
-      Add('dataalteracao timestamptz NULL, idusuarioalteracao int4 NULL, nome varchar(50) NULL,');
-      Add('syncaws int4 NOT NULL DEFAULT 0, CONSTRAINT auxatividadeabastecimento_pkey PRIMARY KEY (id)');
-      Add(')');
-      ExecSQL;
-    end;
-    if VerificaTabelaExiste('control_access') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE control_access (');
-      Add('id INTEGER PRIMARY KEY AUTOINCREMENT,');
-      Add('usuario STRING, data_access DATETIME DEFAULT (CURRENT_TIMESTAMP), senha VARCHAR (100))');
-      ExecSQL;
-    end;
-
-    if VerificaTabelaExiste('produtos') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE produtos ( id integer NOT NULL, status int4 NOT NULL DEFAULT 1,');
-      Add('datareg timestamptz DEFAULT CURRENT_TIMESTAMP, idusuario int4 NOT NULL,');
-      Add('dataalteracao timestamptz NULL, idusuarioalteracao int4 NULL, nome varchar(50) NULL,');
-      Add('tipo int4 NOT NULL, unidademedida varchar(10) NULL, estoqueminimo numeric(15, 2) NULL,');
-      Add('codigobarras varchar(20) NULL, idmarca int4 NULL, codigofabricante varchar(30) NULL,');
-      Add('syncaws int4 NOT NULL DEFAULT 0, customedio numeric(15, 4) NULL,');
-      Add('saldoatual numeric(15, 4) NULL, CONSTRAINT "Produtos_pkey" PRIMARY KEY (id))');
-      ExecSQL;
-    end;
-
-    if VerificaTabelaExiste('maquinaveiculo') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE maquinaveiculo(id integer NOT NULL, status int4 NOT NULL DEFAULT 1,');
-      Add('datareg timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP, idusuario int4 NOT NULL,');
-      Add('dataalteracao timestamptz, idusuarioalteracao int4, idmarca int4, modelo varchar (50) NOT NULL,');
-      Add('placa varchar (20), ano int4, chassi varchar (30), idcombustivel int4, img bytea, prefixo varchar (20),');
-      Add('syncaws int4 NOT NULL DEFAULT 0, syncfaz int4 NOT NULL DEFAULT 0, ultimoabastecimento date,');
-      Add('horimetroultimarev numeric (15, 3), horimetroatual numeric (15, 3) DEFAULT 0, qrcode varchar (20),');
-      Add('idsubgrupo int4, idgrupo int4, tipomedicao int4 NOT NULL DEFAULT 1,');
-      Add('kmatual numeric (15, 3), CONSTRAINT maquinaveiculo_pkey PRIMARY KEY (id))');
-      ExecSQL;
-    end;
-
-    if VerificaTabelaExiste('operadormaquinas') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE operadormaquinas ( id integer NOT NULL, status int4 NOT NULL DEFAULT 1,');
-      Add('datareg timestamptz DEFAULT CURRENT_TIMESTAMP, idusuario int4 NULL, dataalteracao timestamptz NULL,');
-      Add('idusuarioalteracao int4 NULL, nome varchar(50) NULL, rg varchar(10) NULL, cpf varchar(20) NULL,');
-      Add('cnh varchar(20) NULL, celular varchar(20) NULL, syncaws int4 NOT NULL DEFAULT 0,');
-      Add('syncfaz int4 NOT NULL DEFAULT 0, CONSTRAINT "OperadorMaquinas_pkey"');
-      Add('PRIMARY KEY (id))');
-      ExecSQL;
-    end;
-
-    if VerificaTabelaExiste('localestoque') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE localestoque ( id integer NOT NULL, status int4 NOT NULL DEFAULT 1,');
-      Add('datareg timestamptz DEFAULT CURRENT_TIMESTAMP, idusuario int4 NULL,');
-      Add('dataalteracao timestamptz NULL, idusuarioalteracao int4 NULL, nome varchar(50) NULL,');
-      Add('capacidade numeric(15, 3) NULL, syncaws int4 NOT NULL DEFAULT 0,');
-      Add('idcentrocusto int4 NOT NULL,idcombustivel INTEGER');
-      Add('CONSTRAINT localestoque_pkey PRIMARY KEY (id)');
-      Add(')');
-      ExecSQL;
-    end;
-
-    if VerificaTabelaExiste('startbomba') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE startbomba (id integer NOT NULL PRIMARY KEY AUTOINCREMENT,');
-      Add('status int4 NOT NULL DEFAULT 1, datareg timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,');
-      Add('idusuario int4 NOT NULL, dataalteracao timestamptz, idusuarioalteracao int4,');
-      Add('idlocalestoque int4 NOT NULL, idcentrocusto int4 NOT NULL, combustivel int4 NOT NULL,');
-      Add('dataastart date NOT NULL, horastart time NOT NULL, dataaend date, horaend time,');
-      Add('syncaws int4 NOT NULL DEFAULT 0, volumelitrosIni numeric (15, 3) NOT NULL,');
-      Add('obs varchar (100), imgStart TEXT, imgEnd TEXT, volumelitrosFim NUMERIC (15, 3))');
-      ExecSQL;
-    end;
-
-    if VerificaTabelaExiste('tranferencialocalestoque') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE tranferencialocalestoque(id integer NOT NULL,');
-      Add('status int4 NOT NULL DEFAULT 1, datareg timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,');
-      Add('idusuario int4 NOT NULL, dataalteracao timestamptz NULL, idusuarioalteracao int4 NULL,');
-      Add('idlocalestoqueorigem int4 NOT NULL, idlocalestoquedetino int4 NOT NULL,');
-      Add('idproduto int4 NOT NULL, qtde numeric(15, 3) NULL, datamov date NOT NULL,');
-      Add('hora time NOT NULL, syncaws int4 NOT NULL DEFAULT 0,');
-      Add('CONSTRAINT tranferencialocalestoque_pk PRIMARY KEY (id))');
-      ExecSQL;
-    end;
-
-    if VerificaTabelaExiste('abastecimento') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE abastecimento (id integer NOT NULL PRIMARY KEY, status int4 NOT NULL DEFAULT 1,');
-      Add('datareg timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP, idusuario int4 NOT NULL, dataalteracao timestamptz,');
-      Add('idusuarioalteracao int4, idlocalestoque int4 NOT NULL, idmaquina int4 NOT NULL, idoperador int4 NOT NULL,');
-      Add('volumelt numeric (15, 3), combustivel int4 NOT NULL, dataabastecimento date NOT NULL, hora time NOT NULL,');
-      Add('syncaws int4 NOT NULL DEFAULT 0, horimetro numeric (15, 3), idatividade int4, obs varchar (100), img TEXT,');
-      Add('img2 TEXT, img3 TEXT, img4 TEXT, img5 TEXT, valorlitro numeric (15, 3), externo int4 NOT NULL DEFAULT 0,');
-      Add('idcentrocusto INTEGER NOT NULL, kmatual numeric (15, 3),');
-      Add('latitude decimal (9, 6), longitude decimal (9, 6))');
-      ExecSQL;
-    end;
-
-    if VerificaTabelaExiste('auxatividadeabastecimento') then
-    with vQryAux,vQryAux.SQL do
-    begin
-      Clear;
-      Add('CREATE TABLE auxatividadeabastecimento ( id integer NOT NULL, status int4 NOT NULL DEFAULT 1,');
-      Add('datareg timestamptz DEFAULT CURRENT_TIMESTAMP, idusuario int4 NULL,');
-      Add('dataalteracao timestamptz NULL, idusuarioalteracao int4 NULL, nome varchar(50) NULL,');
-      Add('syncaws int4 NOT NULL DEFAULT 0, CONSTRAINT auxatividadeabastecimento_pkey PRIMARY KEY (id)');
-      Add(')');
-      ExecSQL;
-    end;
-
-   with vQryAux,vQryAux.SQL do
-   begin
-    Clear;
-    Add('CREATE TRIGGER IF NOT EXISTS');
-    Add(' tr_atualiza_maquina AFTER INSERT ON abastecimento');
-    Add('BEGIN');
-    Add('  UPDATE maquinaveiculo SET ultimoabastecimento=new.dataabastecimento,');
-    Add('  horimetroatual=new.horimetro');
-    Add('  WHERE id=new.idmaquina;');
-    Add('END');
+   Clear;
+   Add('ALTER TABLE maquinaveiculo add volumetanque numeric(15,2) DEFAULT 0');
+   try
     ExecSQL;
+   except
+     on E : Exception do
+      ShowMessage('Erro ao inserir Controle de Acesso : '+E.Message);
    end;
  end;
+ vQryAux.Free;
 end;
 
 end.

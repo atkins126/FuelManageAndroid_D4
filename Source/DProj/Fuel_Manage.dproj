@@ -149,9 +149,9 @@
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Android)'!=''">
-        <DCC_ExeOutput>D:\Projetos2021\FuelManageMobile_D4\Deploy\</DCC_ExeOutput>
+        <DCC_ExeOutput>D:\Projetos2021\FullManageAndroid\FuelManageAndroid_D4\Deploy\</DCC_ExeOutput>
         <VerInfo_Build>1</VerInfo_Build>
-        <VerInfo_Keys>package=com.embarcadero.$(MSBuildProjectName);label=$(MSBuildProjectName);versionCode=1;versionName=1.0.0;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=</VerInfo_Keys>
+        <VerInfo_Keys>package=com.embarcadero.$(MSBuildProjectName);label=$(MSBuildProjectName);versionCode=1;versionName=1.0.2;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=</VerInfo_Keys>
         <Android_NotificationAccentColor>#000000</Android_NotificationAccentColor>
         <Android_LauncherIcon36>..\..\img\logo\3636.png</Android_LauncherIcon36>
         <Android_LauncherIcon48>..\..\img\logo\4848.png</Android_LauncherIcon48>
@@ -160,7 +160,7 @@
         <Android_LauncherIcon144>..\..\img\logo\144144.png</Android_LauncherIcon144>
         <Android_LauncherIcon192>..\..\img\logo\192192.png</Android_LauncherIcon192>
         <IncludeAndroid_Splash>False</IncludeAndroid_Splash>
-        <Debugger_RunParams>clean</Debugger_RunParams>
+        <Debugger_RunParams>-cleaninstall</Debugger_RunParams>
         <EL_SecureFileSharing>true</EL_SecureFileSharing>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Android64)'!=''">
@@ -210,6 +210,11 @@
             <Form>FrmCamera</Form>
         </DCCReference>
         <DCCReference Include="..\util\NetworkState.Android.pas"/>
+        <DCCReference Include="..\MovEstoque\UMovEstoque.pas">
+            <Form>frmMovEstoque</Form>
+            <FormType>fmx</FormType>
+        </DCCReference>
+        <DCCReference Include="..\util\uFormat.pas"/>
         <JavaReference Include="..\..\lib\dw-camera.jar">
             <Disabled/>
         </JavaReference>
@@ -482,6 +487,12 @@
                 <DeployFile LocalName="$(BDS)\Redist\osx64\libcgsqlite3.dylib" Configuration="Release" Class="File">
                     <Platform Name="OSX64">
                         <RemoteDir>Contents\MacOS\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="..\..\..\..\FuelManageMobile_D4\Deploy\classes.dex" Configuration="Debug" Class="AndroidClassesDexFile">
+                    <Platform Name="Android">
+                        <RemoteName>classes.dex</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
