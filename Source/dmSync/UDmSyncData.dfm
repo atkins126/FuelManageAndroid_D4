@@ -953,4 +953,182 @@ object dmsync: Tdmsync
       Size = 32767
     end
   end
+  object TLubrificacaoprodutos: TFDQuery
+    CachedUpdates = True
+    Connection = dmDB.FCon
+    SQL.Strings = (
+      'select '
+      '*'
+      'from lubrificacaoprodutos l'
+      'where syncaws=0')
+    Left = 480
+    Top = 176
+    object TLubrificacaoprodutosid: TIntegerField
+      FieldName = 'id'
+      Origin = 'id'
+      ProviderFlags = [pfInUpdate, pfInWhere, pfInKey]
+      Required = True
+    end
+    object TLubrificacaoprodutosstatus: TWideStringField
+      FieldName = 'status'
+      Origin = 'status'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaoprodutosdatareg: TWideStringField
+      FieldName = 'datareg'
+      Origin = 'datareg'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaoprodutosidusuario: TWideStringField
+      FieldName = 'idusuario'
+      Origin = 'idusuario'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaoprodutosdataalteracao: TWideStringField
+      FieldName = 'dataalteracao'
+      Origin = 'dataalteracao'
+      Size = 32767
+    end
+    object TLubrificacaoprodutosidusuarioalteracao: TWideStringField
+      FieldName = 'idusuarioalteracao'
+      Origin = 'idusuarioalteracao'
+      Size = 32767
+    end
+    object TLubrificacaoprodutosidlubrificacao: TWideStringField
+      FieldName = 'idlubrificacao'
+      Origin = 'idlubrificacao'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaoprodutosidproduto: TWideStringField
+      FieldName = 'idproduto'
+      Origin = 'idproduto'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaoprodutosqtd: TBCDField
+      FieldName = 'qtd'
+      Origin = 'qtd'
+      Required = True
+      Precision = 15
+      Size = 2
+    end
+    object TLubrificacaoprodutossyncaws: TWideStringField
+      FieldName = 'syncaws'
+      Origin = 'syncaws'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaoprodutossyncfaz: TWideStringField
+      FieldName = 'syncfaz'
+      Origin = 'syncfaz'
+      Required = True
+      Size = 32767
+    end
+  end
+  object TLubrificacao: TFDQuery
+    CachedUpdates = True
+    Connection = dmDB.FCon
+    SQL.Strings = (
+      'select '
+      '*'
+      'from lubrificacao '
+      'where syncaws=0')
+    Left = 480
+    Top = 104
+    object TLubrificacaoid: TIntegerField
+      FieldName = 'id'
+      Origin = 'id'
+      ProviderFlags = [pfInUpdate, pfInWhere, pfInKey]
+      Required = True
+    end
+    object TLubrificacaostatus: TWideStringField
+      FieldName = 'status'
+      Origin = 'status'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaodatareg: TWideStringField
+      FieldName = 'datareg'
+      Origin = 'datareg'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaoidusuario: TWideStringField
+      FieldName = 'idusuario'
+      Origin = 'idusuario'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaodataalteracao: TWideStringField
+      FieldName = 'dataalteracao'
+      Origin = 'dataalteracao'
+      Size = 32767
+    end
+    object TLubrificacaoidusuarioalteracao: TWideStringField
+      FieldName = 'idusuarioalteracao'
+      Origin = 'idusuarioalteracao'
+      Size = 32767
+    end
+    object TLubrificacaoidmaquina: TWideStringField
+      FieldName = 'idmaquina'
+      Origin = 'idmaquina'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaodatatroca: TDateField
+      FieldName = 'datatroca'
+      Origin = 'datatroca'
+      Required = True
+    end
+    object TLubrificacaotipo: TWideStringField
+      FieldName = 'tipo'
+      Origin = 'tipo'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaosyncaws: TWideStringField
+      FieldName = 'syncaws'
+      Origin = 'syncaws'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaosyncfaz: TWideStringField
+      FieldName = 'syncfaz'
+      Origin = 'syncfaz'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaohorimetro: TBCDField
+      FieldName = 'horimetro'
+      Origin = 'horimetro'
+      Precision = 15
+      Size = 2
+    end
+    object TLubrificacaokm: TBCDField
+      FieldName = 'km'
+      Origin = 'km'
+      Precision = 15
+      Size = 2
+    end
+    object TLubrificacaoidcentrocusto: TWideStringField
+      FieldName = 'idcentrocusto'
+      Origin = 'idcentrocusto'
+      Required = True
+      Size = 32767
+    end
+    object TLubrificacaoalerta: TWideStringField
+      FieldName = 'alerta'
+      Origin = 'alerta'
+      Size = 32767
+    end
+    object TLubrificacaodescricaoalerta: TWideMemoField
+      FieldName = 'descricaoalerta'
+      Origin = 'descricaoalerta'
+      BlobType = ftWideMemo
+    end
+  end
 end

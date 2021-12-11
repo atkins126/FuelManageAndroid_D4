@@ -183,10 +183,40 @@ type
     TAbastecimentodescricaoalerta: TWideMemoField;
     TMaquinasvolumetanque: TBCDField;
     TMaquinasmodelo: TStringField;
+    TLubrificacaoprodutos: TFDQuery;
+    TLubrificacao: TFDQuery;
+    TLubrificacaoid: TIntegerField;
+    TLubrificacaostatus: TWideStringField;
+    TLubrificacaodatareg: TWideStringField;
+    TLubrificacaoidusuario: TWideStringField;
+    TLubrificacaodataalteracao: TWideStringField;
+    TLubrificacaoidusuarioalteracao: TWideStringField;
+    TLubrificacaoidmaquina: TWideStringField;
+    TLubrificacaodatatroca: TDateField;
+    TLubrificacaotipo: TWideStringField;
+    TLubrificacaosyncaws: TWideStringField;
+    TLubrificacaosyncfaz: TWideStringField;
+    TLubrificacaohorimetro: TBCDField;
+    TLubrificacaokm: TBCDField;
+    TLubrificacaoidcentrocusto: TWideStringField;
+    TLubrificacaoprodutosid: TIntegerField;
+    TLubrificacaoprodutosstatus: TWideStringField;
+    TLubrificacaoprodutosdatareg: TWideStringField;
+    TLubrificacaoprodutosidusuario: TWideStringField;
+    TLubrificacaoprodutosdataalteracao: TWideStringField;
+    TLubrificacaoprodutosidusuarioalteracao: TWideStringField;
+    TLubrificacaoprodutosidlubrificacao: TWideStringField;
+    TLubrificacaoprodutosidproduto: TWideStringField;
+    TLubrificacaoprodutosqtd: TBCDField;
+    TLubrificacaoprodutossyncaws: TWideStringField;
+    TLubrificacaoprodutossyncfaz: TWideStringField;
+    TLubrificacaoalerta: TWideStringField;
+    TLubrificacaodescricaoalerta: TWideMemoField;
   private
     procedure DeletaTabelaSync(Atabela:string);
     procedure AlteraFlagSync(Atabela,AFlag,Aid:string);
     procedure AtualizaIdSyncAbastecimento(AIdOld,AidNew:string);
+    procedure AtualizaIdSyncLubrificacao(AIdOld, AidNew: string);
   public
     Porta,host:string;
     function GetUsuario:string;
@@ -203,6 +233,9 @@ type
     function PostAbastecimentoOutros:string;
     function PostMovLocalEstoque: string;
     function PostAutenticaPatrimonio(Patrimonio:string):string;
+
+    function PostLubrificacao:string;
+    function PostLubrificacaoProdutos:string;
 
   end;
 
@@ -267,6 +300,126 @@ begin
    end;
 end;
 
+
+function Tdmsync.PostLubrificacao: string;
+var
+ URL,vReultHTTP:STRING;
+ JsonToSend  : TStringStream;
+ I:integer;
+begin
+ with QryAuxLoop,QryAuxLoop.SQL do
+ begin
+   Clear;
+   Add('select * from lubrificacao where syncaws=0');
+   Open;
+   while not QryAuxLoop.Eof do
+   begin
+     frmprincipal.mlog.text:='Enviando Lubrificaçao:'+
+      IntToStr(i)+' de '+IntToStr(QryAuxLoop.RecordCount);
+     with TLubrificacao,TLubrificacao.SQL do
+     begin
+      Clear;
+      Add('select * from lubrificacao where id='+QryAuxLoop.FieldByName('id').AsString);
+      Open;
+     end;
+     if not TLubrificacao.IsEmpty then
+     begin
+       JsonToSend := TStringStream.Create(nil);
+       TLubrificacao.SaveToStream(JsonToSend,sfJSON);
+       Url := 'http://'+Host+':'+Porta+'/Lubrificacao';
+       IdHTTP1.Request.CustomHeaders.Clear;
+       IdHTTP1.Request.CustomHeaders.Clear;
+       IdHTTP1.Request.ContentType := 'application/json';
+       IdHTTP1.Request.Accept      := 'application/json';
+       try
+         vReultHTTP := IdHTTP1.Post(url,JsonToSend);
+         if copy(vReultHTTP,0,4)='{"OK'then
+         begin
+           vReultHTTP := StringReplace(vReultHTTP,'{"OK":"','',[rfReplaceAll]);
+           vReultHTTP := StringReplace(vReultHTTP,'"}','',[rfReplaceAll]);
+           AlteraFlagSync('lubrificacao','1',QryAuxLoop.FieldByName('id').AsString);
+           dmsync.AtualizaIdSyncLubrificacao(QryAuxLoop.FieldByName('id').AsString,
+            vReultHTTP);
+         end
+         else
+          TThread.Synchronize(nil, procedure
+          begin
+           TDialogService.ShowMessage(vReultHTTP);
+          end);
+         Inc(I);
+         QryAuxLoop.Next;
+       except
+        on E: Exception do
+        begin
+          TThread.Synchronize(nil, procedure
+          begin
+           TDialogService.ShowMessage('Erro ao sioncronizar Start Diario : '+e.Message);
+          end);
+          Result:='Erro ao sioncronizar Abastecimento : '+e.Message;
+        end;
+       end;
+     end;
+   end;
+ end;
+ Result     := vReultHTTP;
+end;
+
+function Tdmsync.PostLubrificacaoProdutos: string;
+var
+ URL,vReultHTTP:STRING;
+ JsonToSend  : TStringStream;
+ I:integer;
+begin
+ with QryAuxLoop,QryAuxLoop.SQL do
+ begin
+   Clear;
+   Add('select * from lubrificacaoprodutos where syncaws=0');
+   Open;
+   while not QryAuxLoop.Eof do
+   begin
+     frmprincipal.mlog.text:='Enviando Lubrificacao Produtos:'+
+      IntToStr(i)+' de '+IntToStr(QryAuxLoop.RecordCount);
+     with TLubrificacaoprodutos,TLubrificacaoprodutos.SQL do
+     begin
+      Clear;
+      Add('select * from lubrificacaoprodutos where id='+QryAuxLoop.FieldByName('id').AsString);
+      Open;
+     end;
+     if not TLubrificacaoprodutos.IsEmpty then
+     begin
+       JsonToSend := TStringStream.Create(nil);
+       TLubrificacaoProdutos.SaveToStream(JsonToSend,sfJSON);
+       Url := 'http://'+Host+':'+Porta+'/LubrificacaoProduto';
+       IdHTTP1.Request.CustomHeaders.Clear;
+       IdHTTP1.Request.CustomHeaders.Clear;
+       IdHTTP1.Request.ContentType := 'application/json';
+       IdHTTP1.Request.Accept      := 'application/json';
+       try
+         vReultHTTP := IdHTTP1.Post(url,JsonToSend);
+         if copy(vReultHTTP,0,4)='{"OK'then
+          dmsync.AlteraFlagSync('lubrificacaoprodutos','1',QryAuxLoop.FieldByName('id').AsString)
+         else
+          TThread.Synchronize(nil, procedure
+          begin
+           TDialogService.ShowMessage(vReultHTTP);
+          end);
+         inc(i);
+         QryAuxLoop.Next;
+       except
+        on E: Exception do
+        begin
+         TThread.Synchronize(nil, procedure
+         begin
+          TDialogService.ShowMessage('Erro ao sioncronizar Lubrificacao produtos : '+e.Message);
+         end);
+          Result:='Erro ao sioncronizar Lubrificacao Produtos: '+e.Message;
+        end;
+       end;
+     end;
+   end;
+ end;
+ Result     := vReultHTTP;
+end;
 
 function TdmSync.PostMovLocalEstoque: string;
 var
@@ -342,7 +495,10 @@ begin
      ExecSQL;
     except
      on E: Exception do
-      ShowMessage(e.Message);
+      TThread.Synchronize(nil, procedure
+      begin
+       ShowMessage(e.Message);
+      end);
     end;
   end;
 end;
@@ -358,7 +514,10 @@ begin
     ExecSQL;
    except
      on E: Exception do
-      ShowMessage(e.Message);
+      TThread.Synchronize(nil, procedure
+      begin
+       ShowMessage(e.Message);
+      end);
    end;
 
    Clear;
@@ -368,7 +527,42 @@ begin
     ExecSQL;
    except
      on E: Exception do
-      ShowMessage(e.Message);
+      TThread.Synchronize(nil, procedure
+      begin
+       ShowMessage(e.Message);
+      end);
+   end
+ end;
+end;
+
+procedure Tdmsync.AtualizaIdSyncLubrificacao(AIdOld, AidNew: string);
+begin
+ with qryAux,qryAux.SQL do
+ begin
+   Clear;
+   Add('update lubrificacao set id='+AidNew);
+   Add('where id='+AIdOld);
+   try
+    ExecSQL;
+   except
+     on E: Exception do
+      TThread.Synchronize(nil, procedure
+      begin
+       ShowMessage(e.Message);
+      end);
+   end;
+
+   Clear;
+   Add('update lubrificacaoprodutos set idlubrificacao='+AidNew);
+   Add('where idlubrificacao='+AIdOld);
+   try
+    ExecSQL;
+   except
+     on E: Exception do
+      TThread.Synchronize(nil, procedure
+      begin
+       ShowMessage(e.Message);
+      end);
    end
  end;
 end;
@@ -383,7 +577,10 @@ begin
     ExecSQL;
    except
      on E: Exception do
-      ShowMessage(e.Message);
+      TThread.Synchronize(nil, procedure
+      begin
+       ShowMessage(e.Message);
+      end);
    end
  end;
 end;
@@ -648,8 +845,7 @@ begin
            if vField='ultimoabastecimento' then
            begin
              if vJoGetJ.GetValue(vField).value.Length>0 then
-              TMaquinas.FieldByName(vField).AsString := FormatDateTime('yyyy-mm-dd',
-               StrToDate(vJoGetJ.GetValue(vField).value));
+              TMaquinas.FieldByName(vField).AsString := vJoGetJ.GetValue(vField).value;
            end
            else
             TMaquinas.FieldByName(vField).AsString := vJoGetJ.GetValue(vField).value

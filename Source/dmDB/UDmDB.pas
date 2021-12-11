@@ -259,6 +259,40 @@ type
     qryConfigID_CENTRO_CUSTO: TIntegerField;
     qryConfigPATRIMONIO: TIntegerField;
     TMaquinasvolumetanque: TBCDField;
+    TLubrificacaoprodutos: TFDQuery;
+    TLubrificacao: TFDQuery;
+    TLubrificacaoid: TIntegerField;
+    TLubrificacaostatus: TWideStringField;
+    TLubrificacaodatareg: TWideStringField;
+    TLubrificacaoidusuario: TWideStringField;
+    TLubrificacaodataalteracao: TWideStringField;
+    TLubrificacaoidusuarioalteracao: TWideStringField;
+    TLubrificacaoidmaquina: TWideStringField;
+    TLubrificacaodatatroca: TDateField;
+    TLubrificacaotipo: TWideStringField;
+    TLubrificacaosyncaws: TWideStringField;
+    TLubrificacaosyncfaz: TWideStringField;
+    TLubrificacaohorimetro: TBCDField;
+    TLubrificacaokm: TBCDField;
+    TLubrificacaoidcentrocusto: TWideStringField;
+    TLubrificacaoTipoStr: TWideStringField;
+    TLubrificacaomaquina: TStringField;
+    TLubrificacaocentrocusto: TStringField;
+    TLubrificacaoprodutosid: TIntegerField;
+    TLubrificacaoprodutosstatus: TWideStringField;
+    TLubrificacaoprodutosdatareg: TWideStringField;
+    TLubrificacaoprodutosidusuario: TWideStringField;
+    TLubrificacaoprodutosdataalteracao: TWideStringField;
+    TLubrificacaoprodutosidusuarioalteracao: TWideStringField;
+    TLubrificacaoprodutosidlubrificacao: TWideStringField;
+    TLubrificacaoprodutosidproduto: TWideStringField;
+    TLubrificacaoprodutosqtd: TBCDField;
+    TLubrificacaoprodutossyncaws: TWideStringField;
+    TLubrificacaoprodutossyncfaz: TWideStringField;
+    TLubrificacaoprodutosproduto: TStringField;
+    TLubrificacaoprodutoscodigofabricante: TStringField;
+    TLubrificacaoalerta: TWideStringField;
+    TLubrificacaodescricaoalerta: TWideMemoField;
     procedure TstartBombaReconcileError(DataSet: TFDDataSet; E: EFDException;
       UpdateKind: TFDDatSRowState; var Action: TFDDAptReconcileAction);
     procedure FConBeforeConnect(Sender: TObject);
@@ -272,6 +306,9 @@ type
       E: EFDException; UpdateKind: TFDDatSRowState;
       var Action: TFDDAptReconcileAction);
     procedure TMovLocalEstoqueReconcileError(DataSet: TFDDataSet;
+      E: EFDException; UpdateKind: TFDDatSRowState;
+      var Action: TFDDAptReconcileAction);
+    procedure TLubrificacaoprodutosReconcileError(DataSet: TFDDataSet;
       E: EFDException; UpdateKind: TFDDatSRowState;
       var Action: TFDDAptReconcileAction);
   private
@@ -309,7 +346,12 @@ type
     function RetornaSaldoAtualDia(vIdLocal:string):string;
     procedure AtualizaCentroCustoConfig(idCentro:string);
     procedure RetornaUltimoKMHorimetro(vIdMaquina:string);
-
+    procedure AbrirLubrificacaoprodutos(vIdLubrificacao: string);
+    procedure AbrirLubrificacao(vFiltro: string);
+    function RetornaMaxId(AnomeTabela: string): string;
+    procedure DeletaLubrificacao(vId:string);
+    procedure DeletaLubrificacaoProduto(vId:string);
+    function RetornaIdLubrificacao: integer;
   end;
 
 var
@@ -322,6 +364,60 @@ implementation
 {$R *.dfm}
 
 { TdmDB }
+procedure Tdmdb.AbrirLubrificacao(vFiltro: string);
+begin
+ with TLubrificacao,TLubrificacao.SQL do
+ begin
+   Clear;
+   Add('select');
+   Add(' l.*,');
+   Add(' case');
+   Add('  when tipo=1 then ''TROCA''');
+   Add('  when tipo=2 then ''REMONTA''');
+   Add(' end TipoStr,');
+   Add(' m.prefixo maquina,');
+   Add(' c.nome centrocusto');
+   Add('from lubrificacao l');
+   Add('join maquinaveiculo m on l.idmaquina =m.id');
+   Add('join centrocusto c on c.id=l.idcentrocusto');
+   Add('where l.status=1');
+   Add(vFiltro);
+   Add('order by datareg desc');
+   Open;
+ end;
+end;
+
+function Tdmdb.RetornaMaxId(AnomeTabela: string): string;
+begin
+ with qryAux,qryAux.SQL do
+ begin
+   Clear;
+   Add('select max(id) maxid from '+AnomeTabela);
+   Open;
+   if FieldByName('maxid').AsString.Length=0 then
+    Result :='1'
+   else
+    Result :=FieldByName('maxid').AsString;
+ end;
+end;
+
+procedure Tdmdb.AbrirLubrificacaoprodutos(vIdLubrificacao: string);
+begin
+ with TLubrificacaoprodutos,TLubrificacaoprodutos.SQL do
+ begin
+   Clear;
+   Add('select');
+   Add('l.*,');
+   Add('p.nome produto,');
+   Add('p.codigofabricante');
+   Add('from lubrificacaoprodutos l');
+   Add('join produtos p on l.idproduto=p.id');
+   Add('where l.status=1');
+   Add('and l.idlubrificacao='+vIdLubrificacao);
+   Open;
+ end;
+end;
+
 
 procedure TdmDB.SalvarAcesso(vUsuario, Senha: string);
 begin
@@ -353,6 +449,13 @@ begin
 end;
 
 procedure TdmDB.TAbastecimentoOutrosReconcileError(DataSet: TFDDataSet;
+  E: EFDException; UpdateKind: TFDDatSRowState;
+  var Action: TFDDAptReconcileAction);
+begin
+  ShowMessage(e.Message);
+end;
+
+procedure TdmDB.TLubrificacaoprodutosReconcileError(DataSet: TFDDataSet;
   E: EFDException; UpdateKind: TFDDatSRowState;
   var Action: TFDDAptReconcileAction);
 begin
@@ -636,6 +739,38 @@ begin
  qryAux.free;
 end;
 
+procedure TdmDB.DeletaLubrificacao(vId:string);
+var
+ qryAux : TFDQuery;
+begin
+ qryAux := TFDQuery.Create(nil);
+ qryAux.Connection := FCon;
+ with qryAux,qryAux.sql do
+ begin
+   Clear;
+   Add('delete from lubrificacao');
+   Add('WHERE ID='+vId);
+   ExecSQL;
+ end;
+ qryAux.free;
+end;
+
+procedure TdmDB.DeletaLubrificacaoProduto(vId:string);
+var
+ qryAux : TFDQuery;
+begin
+ qryAux := TFDQuery.Create(nil);
+ qryAux.Connection := FCon;
+ with qryAux,qryAux.sql do
+ begin
+   Clear;
+   Add('delete from lubrificacaoprodutos');
+   Add('WHERE ID='+vId);
+   ExecSQL;
+ end;
+ qryAux.free;
+end;
+
 procedure TdmDB.DeletaStartBomba(vId:string);
 var
  qryAux : TFDQuery;
@@ -701,6 +836,16 @@ begin
  repeat
    vid := Random(900000);
   until (dmDB.VerificaIDExite('abastecimento',intToStr(vid)));
+  Result :=vid;
+end;
+
+function TdmDB.RetornaIdLubrificacao: integer;
+var
+ vid:Integer;
+begin
+ repeat
+   vid := Random(900000);
+  until (dmDB.VerificaIDExite('lubrificacao',intToStr(vid)));
   Result :=vid;
 end;
 

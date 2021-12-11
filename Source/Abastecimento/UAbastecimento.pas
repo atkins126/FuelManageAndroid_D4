@@ -496,12 +496,12 @@ begin
    ShowMessage('Foto do KM é Obrigatoria!!');
    Exit;
   end;
-  if (edtLatitude.Text.Length=0) or (edtLatitude.Text.Length=0) then
-  begin
-   ShowMessage('Aguarde capturando localização!');
-   LocationSensor1.Active := true;
-   Exit;
-  end;
+//  if (edtLatitude.Text.Length=0) or (edtLatitude.Text.Length=0) then
+//  begin
+//   ShowMessage('Aguarde capturando localização!');
+//   LocationSensor1.Active := true;
+//   Exit;
+//  end;
   if(lblVolumeLitro.Text.Length>0)and(lblVolumeLitro.Text<>'0') then
   begin
     vVolumeF := StrToFloat(lblVolumeLitro.Text);
@@ -1148,13 +1148,6 @@ end;
 
 procedure TfrmAbastecimento.cbxTipoAlertaChange(Sender: TObject);
 begin
- if cbxTipoAlerta.ItemIndex=4 then
-  layAlerta.Height:=275
- else
- begin
-
- end;
-
 end;
 
 {$IFDEF ANDROID}
