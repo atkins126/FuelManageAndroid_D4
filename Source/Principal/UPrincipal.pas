@@ -13,12 +13,10 @@ uses
   FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf,
   FireDAC.DApt.Intf, FireDAC.Stan.Async, Data.DB, FireDAC.Comp.DataSet,
   FMX.TreeView,System.Net.HttpClient, FMX.Memo.Types
- {$IF DEFINED(iOS) or DEFINED(ANDROID)}
   ,AndroidApi.helpers,AndroidApi.JNI.JavaTypes,AndroidApi.JNI.GraphicsContentViewText,
   Androidapi.JNI.Os,Androidapi.JNIBridge,Androidapi.JNI.Telephony,Androidapi.JNI.Provider,
   FMX.Helpers.Android,FMX.Platform.Android,System.PushNotification,System.Permissions,
   FMX.VirtualKeyboard
- {$ENDIF}
  {$IFDEF MSWINDOWS}
   ,Winapi.Windows
  {$ENDIF}
@@ -287,6 +285,7 @@ begin
   dmDB.qryConfig.Edit;
  edtIpServidorDados.Text    := dmDB.qryConfigIP_SERVIDOR.AsString;
  edtPortaServidorDados.Text := dmDB.qryConfigPOTA_SERVIDOR.AsString;
+ edtNumPatrimonio.Text      := dmDB.qryConfigPATRIMONIO.AsString;
  MudarAba(tbiConfig,sender);
 end;
 
@@ -583,6 +582,14 @@ begin
     end);
     mlog.text :=(dmSync.GetMaquinas);
 
+    TThread.Synchronize(nil, procedure
+    begin
+     mlog.text :=('Baixando Compartimentos Lubrificacao...');
+     ProgressBar1.Value :=95;
+    end);
+    mlog.text :=(dmSync.GetCompartimentoLub);
+
+
 
     TThread.Synchronize(nil, procedure
     begin
@@ -614,6 +621,8 @@ begin
        [System.UITypes.TMsgDlgBtn.mbYes], 0,
        procedure(const AResult: System.UITypes.TModalResult)
        begin
+         SharedActivity.finish;
+         Close;
        end);
     end);
    end).Start;

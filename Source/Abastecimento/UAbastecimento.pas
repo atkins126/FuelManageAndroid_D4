@@ -141,26 +141,6 @@ type
     Image1: TImage;
     lblExcluir: TLabel;
     Rectangle22: TRectangle;
-    tbiProdutos: TTabItem;
-    layListaP: TLayout;
-    layLista: TLayout;
-    Rectangle11: TRectangle;
-    layFiltros: TLayout;
-    RecGro: TRectangle;
-    Label13: TLabel;
-    edtNomeFiltro: TEdit;
-    ListaProdutos: TListView;
-    btnExcluiProduto: TRectangle;
-    Image6: TImage;
-    Label22: TLabel;
-    Layout20: TLayout;
-    btnNovoProduto: TRectangle;
-    Image2: TImage;
-    Label15: TLabel;
-    btnVoltarProduto: TRectangle;
-    Image3: TImage;
-    Label16: TLabel;
-    AnimacaoMnu: TFloatAnimation;
     Layout39: TLayout;
     Rectangle15: TRectangle;
     Rectangle17: TRectangle;
@@ -190,7 +170,6 @@ type
     lblUltimoHr: TLabel;
     lblUltimoKM: TLabel;
     Label12: TLabel;
-    Label29: TLabel;
     edtCombustivel: TEdit;
     EditButton4: TEditButton;
     ClearEditButton4: TClearEditButton;
@@ -226,7 +205,6 @@ type
     ActLibrary: TTakePhotoFromLibraryAction;
     ActFoto: TTakePhotoFromCameraAction;
     edtHorimetro: TEdit;
-    edtKm: TEdit;
     layAlerta: TLayout;
     Rectangle5: TRectangle;
     ToolBar1: TToolBar;
@@ -269,6 +247,11 @@ type
     Label30: TLabel;
     VertScrollBox1: TVertScrollBox;
     edtLitros: TEdit;
+    Layout48: TLayout;
+    Rectangle24: TRectangle;
+    Layout49: TLayout;
+    Label39: TLabel;
+    edtKm: TEdit;
     procedure btnBuscarMaquinaClick(Sender: TObject);
     procedure EditButton1Click(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -294,18 +277,8 @@ type
     procedure btnExcluiItemMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Single);
     procedure btnVoltar1Click(Sender: TObject);
-    procedure btnVoltarProdutoMouseDown(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Single);
-    procedure btnVoltarProdutoMouseUp(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Single);
-    procedure btnNovoProdutoMouseDown(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Single);
-    procedure btnNovoProdutoMouseUp(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Single);
-    procedure edtNomeFiltroChangeTracking(Sender: TObject);
     procedure EditButton3Click(Sender: TObject);
     procedure btnNovoProdutoClick(Sender: TObject);
-    procedure btnVoltarProdutoClick(Sender: TObject);
     procedure tbPrincipalChange(Sender: TObject);
    {$IFDEF ANDROID}
     procedure btnLerQrClick(Sender: TObject);
@@ -313,13 +286,6 @@ type
     procedure FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
       Shift: TShiftState);
     procedure FormCreate(Sender: TObject);
-    procedure ListaProdutosGesture(Sender: TObject;
-      const EventInfo: TGestureEventInfo; var Handled: Boolean);
-    procedure edtNomeFiltroClick(Sender: TObject);
-    procedure btnExcluiProdutoClick(Sender: TObject);
-    procedure ListaProdutosItemClickEx(const Sender: TObject;
-      ItemIndex: Integer; const LocalClickPos: TPointF;
-      const ItemObject: TListItemDrawable);
     procedure btnSalvaFotosClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnConfirmarAClick(Sender: TObject);
@@ -388,7 +354,7 @@ type
     procedure InsertAbastecimento;
   public
     ClipService: IFMXClipboardService;
-    Elapsed,vImgCapture,vAbriImg: integer;
+    Elapsed,vImgCapture,vAbriImg,vEditaFoto: integer;
     vIdMaquina,vIdLocalEstoque,vFiltro,vFlagSync,
     vIdAbastecimento,vIdProduto,vIdItemOutros,vILocalOrigem,vIdLocalDestino,
     vIdTransferencia,vIdCombustivel,vImg64Horimetro,vImg64Bomba,vImg64KM:string;
@@ -768,41 +734,14 @@ end;
 procedure TfrmAbastecimento.btnExcluiItemMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 begin
- btnExcluiItem.Opacity :=0.5;
+ TRectangle(Sender).Opacity :=0.5;
 end;
 
 procedure TfrmAbastecimento.btnExcluiItemMouseUp(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 begin
-  btnExcluiItem.Opacity :=1;
+  TRectangle(Sender).Opacity :=1;
 end;
-procedure TfrmAbastecimento.btnExcluiProdutoClick(Sender: TObject);
-begin
- btnExcluiProduto.Visible := false;
- if vFlagSync='0' then
- begin
-   MessageDlg('Deseja Realmente Deletar esse Registro?', System.UITypes.TMsgDlgType.mtInformation,
-   [System.UITypes.TMsgDlgBtn.mbYes,
-   System.UITypes.TMsgDlgBtn.mbNo
-   ], 0,
-   procedure(const AResult: System.UITypes.TModalResult)
-   begin
-    case AResult of
-     mrYES:
-     begin
-       dmDB.DeletaAbastecimentoOutros(vIdItemOutros);
-       GeraListaProdutos(vIdAbastecimento,'');
-     end;
-     mrNo:
-    end;
-   end);
- end
- else
- begin
-   ShowMessage('Registro ja Sincronizado!!');
- end;
-end;
-
 procedure TfrmAbastecimento.btnFecharClick(Sender: TObject);
 begin
  layAlerta.Visible := false;
@@ -810,7 +749,11 @@ end;
 
 procedure TfrmAbastecimento.btnFotoBombaClick(Sender: TObject);
 begin
-vImgCapture:=2;
+ vImgCapture:=2;
+ if vAbriImg=1 then
+   vEditaFoto:=1
+  else
+   vEditaFoto:=0;
  {$IFDEF ANDROID}
   PermissionsService.RequestPermissions([PermissaoCamera,
                                          PermissaoReadStorage,
@@ -827,7 +770,12 @@ end;
 
 procedure TfrmAbastecimento.btnFotoHorimetroClick(Sender: TObject);
 begin
-vImgCapture:=1;
+ vImgCapture:=1;
+  if vAbriImg=1 then
+   vEditaFoto:=1
+  else
+   vEditaFoto:=0;
+ vImgCapture:=1;
  {$IFDEF ANDROID}
   PermissionsService.RequestPermissions([PermissaoCamera,
                                          PermissaoReadStorage,
@@ -845,6 +793,10 @@ end;
 procedure TfrmAbastecimento.btnFotoKMClick(Sender: TObject);
 begin
  vImgCapture:=3;
+ if vAbriImg=1 then
+   vEditaFoto:=1
+  else
+   vEditaFoto:=0;
  {$IFDEF ANDROID}
   PermissionsService.RequestPermissions([PermissaoCamera,
                                          PermissaoReadStorage,
@@ -887,7 +839,7 @@ end;
 
 procedure TfrmAbastecimento.btnNovoClick(Sender: TObject);
 begin
- vFiltro := ' and s.status=1 and s.dataastart='+FormatDateTime('yyyy-mm-dd',date).QuotedString;
+ vFiltro := ' and s.dataastart='+FormatDateTime('yyyy-mm-dd',date).QuotedString;
  dmDB.AbrirStartBomba(vFiltro);
  if dmDB.TStartbomba.IsEmpty then
  begin
@@ -917,35 +869,22 @@ end;
 procedure TfrmAbastecimento.btnNovoMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 begin
- btnNovo.Opacity :=0.5;
+ TRectangle(Sender).Opacity :=0.5;
 end;
 
 procedure TfrmAbastecimento.btnNovoMouseUp(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 begin
-  btnNovo.Opacity :=1;
+  TRectangle(Sender).Opacity :=1;
 end;
 
 procedure TfrmAbastecimento.btnNovoProdutoClick(Sender: TObject);
 begin
-  btnExcluiProduto.Visible    := false;
   edtOutroProduto.Text        :='';
   edtQtdOutroProduto.Text     :='0';
   layNewOutros.Visible        :=true;
   dmDB.AbrirAbastecimentoOutros(vIdAbastecimento,'');
   dmDB.TAbastecimentoOutros.Insert;
-end;
-
-procedure TfrmAbastecimento.btnNovoProdutoMouseDown(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Single);
-begin
-   btnNovoProduto.Opacity :=0.5;
-end;
-
-procedure TfrmAbastecimento.btnNovoProdutoMouseUp(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Single);
-begin
-  btnNovoProduto.Opacity :=1;
 end;
 
 procedure TfrmAbastecimento.btnSalvaFotosClick(Sender: TObject);
@@ -964,7 +903,14 @@ begin
  if not imgFotoKM.Bitmap.IsEmpty then
    vImg64KM := Base64FromBitmap(imgFotoKM.Bitmap);
 
- MudarAba(tbiCad,sender);
+ if (vAbriImg=1)then
+ begin
+  dmDB.AtualizaImagemAbastecimento(vIdAbastecimento,vImg64Horimetro,
+   vImg64KM,vImg64Bomba);
+   MudarAba(tbiLista,sender);
+ end
+ else
+  MudarAba(tbiCad,sender);
 end;
 
 procedure TfrmAbastecimento.ActFotoDidFinishTaking(Image: TBitmap);
@@ -1115,35 +1061,24 @@ begin
   tbPrincipal.ActiveTab := tbiLista;
   Exit;
  end;
- if tbPrincipal.TabIndex >1 then
+ if tbPrincipal.TabIndex =2 then
  begin
   tbPrincipal.ActiveTab := tbiCad;
   Exit;
+ end;
+ if tbPrincipal.TabIndex =3 then
+ begin
+  if vAbriImg=0 then
+   tbPrincipal.ActiveTab := tbiCad
+  else
+   tbPrincipal.ActiveTab := tbiLista;
+   Exit;
  end;
  if tbPrincipal.TabIndex=0 then
  begin
   Close;
  end;
 
-end;
-
-procedure TfrmAbastecimento.btnVoltarProdutoClick(Sender: TObject);
-begin
-  layNewOutros.Visible := false;
-  btnExcluiProduto.Visible   := false;
-  tbPrincipal.ActiveTab   := tbiLista;
-end;
-
-procedure TfrmAbastecimento.btnVoltarProdutoMouseDown(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Single);
-begin
-    btnVoltarProduto.Opacity :=0.5;
-end;
-
-procedure TfrmAbastecimento.btnVoltarProdutoMouseUp(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Single);
-begin
-   btnVoltarProduto.Opacity :=1;
 end;
 
 procedure TfrmAbastecimento.cbxTipoAlertaChange(Sender: TObject);
@@ -1281,20 +1216,6 @@ begin
  formatar(edtLitros,TFormato.ValorDecimal);
 end;
 
-procedure TfrmAbastecimento.edtNomeFiltroChangeTracking(Sender: TObject);
-begin
- if edtNomeFiltro.Text.Length>0 then
-  GeraListaProdutos(vIdAbastecimento,
-   'and produto like '+QuotedStr('%'+edtNomeFiltro.Text+'%'))
- else
-   GeraListaProdutos(vIdAbastecimento,'');
-end;
-
-procedure TfrmAbastecimento.edtNomeFiltroClick(Sender: TObject);
-begin
- btnExcluiProduto.Visible   := false;
-end;
-
 procedure TfrmAbastecimento.FormCreate(Sender: TObject);
 begin
  permissao               := T99Permissions.Create;
@@ -1428,6 +1349,7 @@ begin
 
        txt      := TListItemText(Objects.FindDrawable('Text16'));
        txt.Text := 'Outros Produtos';
+       txt.TagString := dmDB.TAbastecimentoimg3.AsString;
 
 
        img := TListItemImage(Objects.FindDrawable('Image10'));
@@ -1461,40 +1383,7 @@ var
  img    : TListItemImage;
  vStatus:string;
 begin
- TThread.CreateAnonymousThread(procedure
- begin
-  TThread.Synchronize(nil, procedure
-  begin
-    dmDB.AbrirAbastecimentoOutros(vIdAbastecimento,vFiltro);
-    ListaProdutos.Items.Clear;
-    while not dmDb.TAbastecimentoOutros.eof do
-     begin
-       item := ListaProdutos.Items.Add;
-         with frmAbastecimento do
-         begin
-           with item  do
-           begin
-             txt      := TListItemText(Objects.FindDrawable('Text14'));
-             txt.Text := dmDb.TAbastecimentoOutrosid.AsString;
-
-             txt      := TListItemText(Objects.FindDrawable('Text5'));
-             txt.Text := dmDb.TAbastecimentoOutrosProduto.AsString;
-
-             txt      := TListItemText(Objects.FindDrawable('Text6'));
-             txt.Text := 'Qtde:';
-
-             txt      := TListItemText(Objects.FindDrawable('Text7'));
-             txt.Text := dmDb.TAbastecimentoOutrosquantidade.AsString;
-
-             img := TListItemImage(Objects.FindDrawable('Image14'));
-             img.Bitmap := frmPrincipal.imgSeed.Bitmap;
-
-           end;
-           dmDB.TAbastecimentoOutros.Next;
-         end;
-     end;
-  end);
- end).Start;
+ 
 end;
 
 procedure TfrmAbastecimento.Image18Click(Sender: TObject);
@@ -1573,6 +1462,8 @@ begin
   vImg64Horimetro          := '';
   vImg64Bomba              := '';
   vImg64KM                 := '';
+  vAbriImg                 := 0;
+  vEditaFoto               := 0;
 end;
 
 procedure TfrmAbastecimento.ListaGesture(Sender: TObject;
@@ -1594,25 +1485,23 @@ begin
 
   vImg64Horimetro      := TAppearanceListViewItem(Lista.Selected).Objects.FindObjectT<TListItemText>
    ('Text12').TagString;
+
   vImg64Bomba          := TAppearanceListViewItem(Lista.Selected).Objects.FindObjectT<TListItemText>
    ('Text13').TagString;
 
+  vImg64KM          := TAppearanceListViewItem(Lista.Selected).Objects.FindObjectT<TListItemText>
+   ('Text16').TagString;
+
+
   if ItemObject is TListItemImage then
   begin
-    if TListItemImage(ItemObject).Name='Image11' then
-    begin
-     btnExcluiProduto.Visible   := false;
-     GeraListaProdutos(vIdAbastecimento,vFiltro);
-     MudarAba(tbiProdutos,sender);
-     Exit;
-    end;
 
     if TListItemImage(ItemObject).Name='Image21' then
     begin
      vAbriImg                 :=1;
-     btnExcluiProduto.Visible := false;
-     layImgHorimetro.Enabled  := false;
-     btnSalvarFoto.Enabled    := false;
+     btnSalvarFoto.Enabled    := vFlagSync='0';
+     btnFotoKM.Enabled        := vFlagSync='0';
+     btnFotoBomba.Enabled     := vFlagSync='0';
 
      if vImg64Horimetro.Length>0 then
       imgHorimetro.Bitmap  := BitmapFromBase64(vImg64Horimetro)
@@ -1633,20 +1522,6 @@ begin
      MudarAba(tbiImg,sender)
     end;
   end;
-end;
-
-procedure TfrmAbastecimento.ListaProdutosGesture(Sender: TObject;
-  const EventInfo: TGestureEventInfo; var Handled: Boolean);
-begin
-  btnExcluiProduto.Visible   := true;
-end;
-
-procedure TfrmAbastecimento.ListaProdutosItemClickEx(const Sender: TObject;
-  ItemIndex: Integer; const LocalClickPos: TPointF;
-  const ItemObject: TListItemDrawable);
-begin
- vIdItemOutros   := TAppearanceListViewItem(ListaProdutos.Selected).Objects.FindObjectT<TListItemText>
-  ('Text14').Text;
 end;
 
 procedure TfrmAbastecimento.LocationPermissionRequestResult(Sender: TObject;

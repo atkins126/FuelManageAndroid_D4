@@ -212,6 +212,19 @@ type
     TLubrificacaoprodutossyncfaz: TWideStringField;
     TLubrificacaoalerta: TWideStringField;
     TLubrificacaodescricaoalerta: TWideMemoField;
+    TMovLocalEstoqueimg: TWideMemoField;
+    TMovLocalEstoqueimgfim: TWideMemoField;
+    TLubrificacaoidlocalestoque: TIntegerField;
+    TAuxCompLub: TFDQuery;
+    TAuxCompLubid: TIntegerField;
+    TAuxCompLubstatus: TIntegerField;
+    TAuxCompLubdatareg: TWideStringField;
+    TAuxCompLubidusuario: TWideStringField;
+    TAuxCompLubdataalteracao: TWideStringField;
+    TAuxCompLubidusuarioalteracao: TWideStringField;
+    TAuxCompLubnome: TStringField;
+    TAuxCompLubsyncaws: TWideStringField;
+    TLubrificacaoidcompartimento: TIntegerField;
   private
     procedure DeletaTabelaSync(Atabela:string);
     procedure AlteraFlagSync(Atabela,AFlag,Aid:string);
@@ -222,6 +235,7 @@ type
     function GetUsuario:string;
     function GetOperadorMaquinas:string;
     function GetAtividadesAbastecimento:string;
+    function GetCompartimentoLub:string;
     function GetCentroCusto(idCentroCusto:string):string;
     function GetLocalEstoque(idCentroCusto:string):string;
     function GetProdutos:string;
@@ -708,6 +722,61 @@ begin
     end
     else
      Result :='Centro de Custo Baixados com Sucesso'
+   except
+   on E: Exception do
+     begin
+       result:='Erro ao comunicar com Servidor:'+E.Message;
+     end;
+   end;
+end;
+
+function Tdmsync.GetCompartimentoLub: string;
+var
+ Url,vJsonString,vIsert,
+ vField,vFieldJS,vId:string;
+ vJoInsert,vJoItemO,vJoItemO1,jSubObj,vJoGetJ : TJSONObject;
+ vJoItem,vJoItem1,vJoGet  : TJSONArray;
+ JsonValue,JsonId:TJSONValue;
+ I,J,z:integer;
+ joName,objJson,joItem : TJSONObject;
+ joItems: TJSONArray;
+begin
+   Url := 'http://'+Host+':'+Porta+'/GetAuxCompLub';
+   IdHTTP1.Request.CustomHeaders.Clear;
+   try
+    vJsonString        := IdHTTP1.Get(URL);
+    if(vJsonString<>'{"TAuxCompLub":[') then
+    begin
+       jSubObj  := TJSONObject.ParseJSONValue(vJsonString) as TJSONObject;
+       vJoGet := jSubObj.GetValue<TJSONArray>('TAuxCompLub')as TJSONArray;
+       DeletaTabelaSync('compartimentolubricficacao');
+       for i := 0 to vJoGet.Count-1 do
+       begin
+          vJoGetJ        := vJoGet.Items[i] as TJSONObject;
+          TAuxCompLub.Close;
+          TAuxCompLub.Open;
+          TAuxCompLub.Insert;
+          for z := 0 to TAuxCompLub.Fields.Count -1 do
+          begin
+           vField:= StringReplace(TAuxCompLub.Fields[z].Name,
+            'TAuxCompLub','',[rfReplaceAll]);
+           TAuxCompLub.FieldByName(vField).AsString := vJoGetJ.GetValue(vField).value;
+          end;
+          try
+           TAuxCompLub.ApplyUpdates(-1);
+          except
+           on E: Exception do
+             begin
+               result:='Erro ao inserir Auxiliar Compartimento Lub:'+E.Message;
+             end;
+          end;
+       end;
+       TAuxCompLub.Close;
+       TAuxCompLub.Open;;
+       result:='Auxiliar Compartimento Lub Baixados com Sucesso'
+    end
+    else
+     Result :='Auxiliar Compartimento Lub Baixados com Sucesso'
    except
    on E: Exception do
      begin

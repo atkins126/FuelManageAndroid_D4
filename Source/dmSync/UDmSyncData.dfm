@@ -1,7 +1,7 @@
 object dmsync: Tdmsync
   OldCreateOrder = False
-  Height = 427
-  Width = 595
+  Height = 408
+  Width = 731
   object IdHTTP1: TIdHTTP
     ProxyParams.BasicAuthentication = False
     ProxyParams.ProxyPort = 0
@@ -952,6 +952,16 @@ object dmsync: Tdmsync
       Required = True
       Size = 32767
     end
+    object TMovLocalEstoqueimg: TWideMemoField
+      FieldName = 'img'
+      Origin = 'img'
+      BlobType = ftWideMemo
+    end
+    object TMovLocalEstoqueimgfim: TWideMemoField
+      FieldName = 'imgfim'
+      Origin = 'imgfim'
+      BlobType = ftWideMemo
+    end
   end
   object TLubrificacaoprodutos: TFDQuery
     CachedUpdates = True
@@ -1129,6 +1139,65 @@ object dmsync: Tdmsync
       FieldName = 'descricaoalerta'
       Origin = 'descricaoalerta'
       BlobType = ftWideMemo
+    end
+    object TLubrificacaoidlocalestoque: TIntegerField
+      FieldName = 'idlocalestoque'
+      Origin = 'idlocalestoque'
+    end
+    object TLubrificacaoidcompartimento: TIntegerField
+      FieldName = 'idcompartimento'
+      Origin = 'idcompartimento'
+    end
+  end
+  object TAuxCompLub: TFDQuery
+    Connection = dmDB.FCon
+    SQL.Strings = (
+      'select * from compartimentolubricficacao')
+    Left = 488
+    Top = 248
+    object TAuxCompLubid: TIntegerField
+      FieldName = 'id'
+      Origin = 'id'
+      ProviderFlags = [pfInUpdate, pfInWhere, pfInKey]
+      Required = True
+    end
+    object TAuxCompLubstatus: TIntegerField
+      FieldName = 'status'
+      Origin = 'status'
+      Required = True
+    end
+    object TAuxCompLubdatareg: TWideStringField
+      FieldName = 'datareg'
+      Origin = 'datareg'
+      Required = True
+      Size = 32767
+    end
+    object TAuxCompLubidusuario: TWideStringField
+      FieldName = 'idusuario'
+      Origin = 'idusuario'
+      Required = True
+      Size = 32767
+    end
+    object TAuxCompLubdataalteracao: TWideStringField
+      FieldName = 'dataalteracao'
+      Origin = 'dataalteracao'
+      Size = 32767
+    end
+    object TAuxCompLubidusuarioalteracao: TWideStringField
+      FieldName = 'idusuarioalteracao'
+      Origin = 'idusuarioalteracao'
+      Size = 32767
+    end
+    object TAuxCompLubnome: TStringField
+      FieldName = 'nome'
+      Origin = 'nome'
+      Size = 50
+    end
+    object TAuxCompLubsyncaws: TWideStringField
+      FieldName = 'syncaws'
+      Origin = 'syncaws'
+      Required = True
+      Size = 32767
     end
   end
 end

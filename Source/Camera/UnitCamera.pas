@@ -76,16 +76,22 @@ begin
       frmAbastecimento.lblVolumeLitro.Text          := dmDB.TMaquinasvolumetanque.AsString;
       case dmDB.TMaquinastipomedicao.AsInteger of
        0:begin
-          frmAbastecimento.edtHorimetro.Enabled :=true;
-          frmAbastecimento.edtkm.Enabled        :=false;
+          frmAbastecimento.edtHorimetro.Enabled     :=true;
+          frmAbastecimento.edtkm.Enabled            :=false;
+          frmAbastecimento.layFotoKM.Visible        :=false;
+          frmAbastecimento.layFotoHorimetro.Visible :=true;
          end;
        1:begin
           frmAbastecimento.edtHorimetro.Enabled :=false;
           frmAbastecimento.edtkm.Enabled        :=true;
+          frmAbastecimento.layFotoKM.Visible        :=true;
+          frmAbastecimento.layFotoHorimetro.Visible :=false;
          end;
        2:begin
-          frmAbastecimento.edtHorimetro.Enabled :=true;
-          frmAbastecimento.edtkm.Enabled        :=true;
+          frmAbastecimento.edtHorimetro.Enabled     :=true;
+          frmAbastecimento.edtkm.Enabled            :=true;
+          frmAbastecimento.layFotoKM.Visible        :=true;
+          frmAbastecimento.layFotoHorimetro.Visible :=true;
          end;
       end;
       Close;

@@ -9,7 +9,9 @@ uses
   System.Sensors, System.Sensors.Components, FMX.StdCtrls, FMX.Effects,
   FMX.Layouts, FMX.Ani, FMX.ListBox, FMX.DateTimeCtrls, FMX.Edit, FMX.ListView,
   FMX.Controls.Presentation, FMX.Objects, FMX.TabControl, FMX.Gestures,
-  FMX.MediaLibrary.Actions, FMX.StdActns, FMX.ActnList, System.Actions;
+  FMX.MediaLibrary.Actions, FMX.StdActns, FMX.ActnList, System.Actions,
+  Data.Bind.EngExt, Fmx.Bind.DBEngExt, System.Rtti, System.Bindings.Outputs,
+  Fmx.Bind.Editors, Data.Bind.Components, Data.Bind.DBScope;
 
 type
   TfrmLubrificacao = class(TForm)
@@ -98,9 +100,7 @@ type
     Rectangle8: TRectangle;
     Layout19: TLayout;
     Label12: TLabel;
-    Label29: TLabel;
     edtHorimetro: TEdit;
-    edtKm: TEdit;
     Layout44: TLayout;
     Rectangle20: TRectangle;
     Layout45: TLayout;
@@ -193,6 +193,25 @@ type
     Rectangle4: TRectangle;
     Image12: TImage;
     Label5: TLabel;
+    Layout1: TLayout;
+    Rectangle6: TRectangle;
+    Layout10: TLayout;
+    Label6: TLabel;
+    edtLocalEstoque: TEdit;
+    SearchEditButton1: TSearchEditButton;
+    Layout11: TLayout;
+    Rectangle13: TRectangle;
+    Layout12: TLayout;
+    Label8: TLabel;
+    cbxCompartimento: TComboBox;
+    BindSourceDB1: TBindSourceDB;
+    BindingsList1: TBindingsList;
+    LinkFillControlToField: TLinkFillControlToField;
+    Layout13: TLayout;
+    Rectangle18: TRectangle;
+    Layout41: TLayout;
+    Label20: TLabel;
+    edtKm: TEdit;
     procedure btnBuscarClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure btnNovoClick(Sender: TObject);
@@ -228,12 +247,14 @@ type
     procedure edtKmTyping(Sender: TObject);
     procedure btnConfirmaAlertaClick(Sender: TObject);
     procedure btnFecharClick(Sender: TObject);
+    procedure cbxCompartimentoChange(Sender: TObject);
   private
     procedure GeraLista(vFiltro:string);
     procedure MudarAba(ATabItem: TTabItem; sender: TObject);
     procedure GeraListaProdutos(vIdLubri,vFiltro:string);
   public
-    vIdMaquina,vIdMax,vidProduto,vIdLub,vIdLubProd,vFlagSync,vFlagSyncProd:string;
+    vIdMaquina,vIdMax,vidProduto,vIdLub,vIdLubProd,vFlagSync,vFlagSyncProd,
+    vIdLocalEstoque,vIdCompartimento:string;
     vTipoMedicao:integer;
     vTipoAlerta,vErro:integer;
     procedure Filtro;
@@ -322,6 +343,11 @@ begin
  if edtMaquina.Text.Length=0 then
  begin
    ShowMessage('Informe a Maquina!');
+   Exit;
+ end;
+ if cbxCompartimento.ItemIndex=-1 then
+ begin
+   ShowMessage('Informe o Compartimento!');
    Exit;
  end;
   case vTipoMedicao of
@@ -584,6 +610,8 @@ begin
    dmdb.TLubrificacao.Insert;
    dmdb.TLubrificacaoid.AsInteger             := dmdb.RetornaIdLubrificacao;
    dmdb.TLubrificacaoalerta.AsInteger         := vTipoAlerta;
+   dmdb.TLubrificacaoidlocalestoque.AsString  := vidlocalestoque;
+   dmdb.TLubrificacaoidcompartimento.AsString := vIdCompartimento;
    dmdb.TLubrificacaoidusuario.AsString       := dmdb.vIdUser;
    dmdb.TLubrificacaodatatroca.AsDateTime     := edtDataTroca.Date;
    dmdb.TLubrificacaoidmaquina.AsString       := vIdMaquina;
@@ -710,12 +738,27 @@ begin
 end;
 
 procedure TfrmLubrificacao.btnNovoClick(Sender: TObject);
+var
+ vFiltro:string;
 begin
+ vFiltro := ' and s.dataastart='+FormatDateTime('yyyy-mm-dd',date).QuotedString;
+ dmDB.AbrirStartBomba(vFiltro);
+ if dmDB.TStartbomba.IsEmpty then
+ begin
+  ShowMessage('É necessario realizar o Start Diario antes de abastecer!');
+  Exit;
+ end
+ else
+ begin
   LimpaCampos;
+  edtLocalEstoque.Text    := dmDB.TStartbombaLocal.AsString;
+  vIdLocalEstoque         := dmDB.TStartbombaidlocalestoque.AsString;
+  edtLocalEstoque.Enabled := false;
   dmdb.TLubrificacao.Close;
   dmdb.TLubrificacao.Open;
   dmdb.TLubrificacao.Insert;
   MudarAba(tbiCad,sender);
+ end;
 end;
 
 procedure TfrmLubrificacao.btnNovoProdutoClick(Sender: TObject);
@@ -742,6 +785,12 @@ begin
  Filtro;
  GeraLista('');
  MudarAba(tbiLista,sender);
+end;
+
+procedure TfrmLubrificacao.cbxCompartimentoChange(Sender: TObject);
+begin
+ if cbxCompartimento.ItemIndex>-1 then
+   vIdCompartimento := dmDB.ReturnsIdByName('compartimentolubricficacao',cbxCompartimento.Selected.Text);
 end;
 
 procedure TfrmLubrificacao.EditButton3Click(Sender: TObject);
@@ -778,6 +827,7 @@ begin
   edtKm.Text :='';
   layBuscaMaquina.Height := 60;
   vTipoAlerta            := 0;
+  cbxCompartimento.ItemIndex:=-1;
 end;
 
 procedure TfrmLubrificacao.ListaGesture(Sender: TObject;
@@ -877,6 +927,8 @@ begin
  tbPrincipal.TabPosition  := TTabPosition.None;
  tbPrincipal.ActiveTab    := tbiLista;
  Filtro;
+ dmDB.tauxCompLub.close;
+ dmDB.tauxCompLub.Open;
 end;
 
 procedure TfrmLubrificacao.GeraLista(vFiltro: string);
