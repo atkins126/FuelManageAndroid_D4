@@ -34,14 +34,18 @@ function FormataValor(str : string) : string;
 begin
     if Str = '' then
         Str := '0';
-    Result := FormatFloat('#,##', strtofloat(str));
+    try
+        Result := FormatFloat('#,##', strtofloat(str));
+
+    except
+        Result := FormatFloat('#,##0.00', 0);
+    end;
 end;
 
 function FormataValorDecimal(str : string) : string;
 begin
     if Str = '' then
         Str := '0';
-
     try
         Result := FormatFloat('#,##0.00', strtofloat(str) / 100);
     except
@@ -186,7 +190,7 @@ begin
             texto := FormataValor(SomenteNumero(texto));
 
        // valor decimal
-        if Formato = Valor then
+        if Formato = ValorDecimal then
          texto := FormataValorDecimal(SomenteNumero(texto));
 
         // Money (com simbolo da moeda)...

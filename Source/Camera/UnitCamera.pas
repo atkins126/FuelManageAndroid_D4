@@ -37,7 +37,7 @@ implementation
 
 {$R *.fmx}
 
-uses UAbastecimento, UDmDB;
+uses UAbastecimento, UDmDB, UPrincipal;
 
 procedure TFrmCamera.btnVoltarClick(Sender: TObject);
 begin
@@ -49,42 +49,53 @@ begin
   codigo := aCode;
  if codigo.Length>0 then
  begin
-   if dmDB.AbriMaquinaPrefixo(codigo) then
-   begin
-     frmAbastecimento.layBuscaMaquina.Height       := 60;
-     frmAbastecimento.lblUltimoKM.Text             :='';
-     frmAbastecimento.lblUltimoHr.Text             :='';
-     frmAbastecimento.lblUltimoAbastecimento.Text  :='';
-     frmAbastecimento.lblVolumeLitro.Text          :='';
-     ShowMessage('Maquina Não Encontrado');
-     frmAbastecimento.edtMaquina.Text :='';
-     Exit;
-   end
+   if frmPrincipal.vLubrificacao=1 then
+    Close
    else
    begin
-    frmAbastecimento.vIdMaquina                   := dmDB.TMaquinasid.AsString;
-    frmAbastecimento.layBuscaMaquina.Height       := 135;
-    frmAbastecimento.edtMaquina.Text              := dmDB.TMaquinasprefixo.AsString;
-    dmDB.RetornaUltimoKMHorimetro(dmDB.TMaquinasid.AsString);
-    frmAbastecimento.lblUltimoKM.Text             := dmDB.vUltimoKM;
-    frmAbastecimento.lblUltimoHr.Text             := dmDB.vUltimoHorimetro;
-    frmAbastecimento.lblUltimoAbastecimento.Text  := dmDB.TMaquinasultimoabastecimento.AsString;
-    frmAbastecimento.lblVolumeLitro.Text          := dmDB.TMaquinasvolumetanque.AsString;
-    case dmDB.TMaquinastipomedicao.AsInteger of
-     0:begin
-        frmAbastecimento.edtHorimetro.Enabled :=true;
-        frmAbastecimento.edtkm.Enabled        :=false;
-       end;
-     1:begin
-        frmAbastecimento.edtHorimetro.Enabled :=false;
-        frmAbastecimento.edtkm.Enabled        :=true;
-       end;
-     2:begin
-        frmAbastecimento.edtHorimetro.Enabled :=true;
-        frmAbastecimento.edtkm.Enabled        :=true;
-       end;
-    end;
-    Close;
+     if dmDB.AbriMaquinaPrefixo(codigo) then
+     begin
+       frmAbastecimento.layBuscaMaquina.Height       := 60;
+       frmAbastecimento.lblUltimoKM.Text             :='';
+       frmAbastecimento.lblUltimoHr.Text             :='';
+       frmAbastecimento.lblUltimoAbastecimento.Text  :='';
+       frmAbastecimento.lblVolumeLitro.Text          :='';
+       ShowMessage('Maquina Não Encontrado');
+       frmAbastecimento.edtMaquina.Text :='';
+       Exit;
+     end
+     else
+     begin
+      frmAbastecimento.vIdMaquina                   := dmDB.TMaquinasid.AsString;
+      frmAbastecimento.layBuscaMaquina.Height       := 135;
+      frmAbastecimento.edtMaquina.Text              := dmDB.TMaquinasprefixo.AsString;
+      dmDB.RetornaUltimoKMHorimetro(dmDB.TMaquinasid.AsString);
+      frmAbastecimento.lblUltimoKM.Text             := dmDB.vUltimoKM;
+      frmAbastecimento.lblUltimoHr.Text             := dmDB.vUltimoHorimetro;
+      frmAbastecimento.lblUltimoAbastecimento.Text  := dmDB.TMaquinasultimoabastecimento.AsString;
+      frmAbastecimento.lblVolumeLitro.Text          := dmDB.TMaquinasvolumetanque.AsString;
+      case dmDB.TMaquinastipomedicao.AsInteger of
+       0:begin
+          frmAbastecimento.edtHorimetro.Enabled     :=true;
+          frmAbastecimento.edtkm.Enabled            :=false;
+          frmAbastecimento.layFotoKM.Visible        :=false;
+          frmAbastecimento.layFotoHorimetro.Visible :=true;
+         end;
+       1:begin
+          frmAbastecimento.edtHorimetro.Enabled :=false;
+          frmAbastecimento.edtkm.Enabled        :=true;
+          frmAbastecimento.layFotoKM.Visible        :=true;
+          frmAbastecimento.layFotoHorimetro.Visible :=false;
+         end;
+       2:begin
+          frmAbastecimento.edtHorimetro.Enabled     :=true;
+          frmAbastecimento.edtkm.Enabled            :=true;
+          frmAbastecimento.layFotoKM.Visible        :=true;
+          frmAbastecimento.layFotoHorimetro.Visible :=true;
+         end;
+      end;
+      Close;
+     end;
    end;
  end;
 end;

@@ -259,6 +259,55 @@ type
     qryConfigID_CENTRO_CUSTO: TIntegerField;
     qryConfigPATRIMONIO: TIntegerField;
     TMaquinasvolumetanque: TBCDField;
+    TLubrificacaoprodutos: TFDQuery;
+    TLubrificacao: TFDQuery;
+    TLubrificacaoid: TIntegerField;
+    TLubrificacaostatus: TWideStringField;
+    TLubrificacaodatareg: TWideStringField;
+    TLubrificacaoidusuario: TWideStringField;
+    TLubrificacaodataalteracao: TWideStringField;
+    TLubrificacaoidusuarioalteracao: TWideStringField;
+    TLubrificacaoidmaquina: TWideStringField;
+    TLubrificacaodatatroca: TDateField;
+    TLubrificacaotipo: TWideStringField;
+    TLubrificacaosyncaws: TWideStringField;
+    TLubrificacaosyncfaz: TWideStringField;
+    TLubrificacaohorimetro: TBCDField;
+    TLubrificacaokm: TBCDField;
+    TLubrificacaoidcentrocusto: TWideStringField;
+    TLubrificacaoTipoStr: TWideStringField;
+    TLubrificacaomaquina: TStringField;
+    TLubrificacaocentrocusto: TStringField;
+    TLubrificacaoprodutosid: TIntegerField;
+    TLubrificacaoprodutosstatus: TWideStringField;
+    TLubrificacaoprodutosdatareg: TWideStringField;
+    TLubrificacaoprodutosidusuario: TWideStringField;
+    TLubrificacaoprodutosdataalteracao: TWideStringField;
+    TLubrificacaoprodutosidusuarioalteracao: TWideStringField;
+    TLubrificacaoprodutosidlubrificacao: TWideStringField;
+    TLubrificacaoprodutosidproduto: TWideStringField;
+    TLubrificacaoprodutosqtd: TBCDField;
+    TLubrificacaoprodutossyncaws: TWideStringField;
+    TLubrificacaoprodutossyncfaz: TWideStringField;
+    TLubrificacaoprodutosproduto: TStringField;
+    TLubrificacaoprodutoscodigofabricante: TStringField;
+    TLubrificacaoalerta: TWideStringField;
+    TLubrificacaodescricaoalerta: TWideMemoField;
+    TMovLocalEstoqueimg: TWideMemoField;
+    TMovLocalEstoqueimgfim: TWideMemoField;
+    TAbastecimentoOutrosidmaquina: TIntegerField;
+    TAbastecimentoOutrostipo: TIntegerField;
+    TLubrificacaoidlocalestoque: TIntegerField;
+    TAuxCompLub: TFDQuery;
+    TAuxCompLubid: TIntegerField;
+    TAuxCompLubstatus: TIntegerField;
+    TAuxCompLubdatareg: TWideStringField;
+    TAuxCompLubidusuario: TWideStringField;
+    TAuxCompLubdataalteracao: TWideStringField;
+    TAuxCompLubidusuarioalteracao: TWideStringField;
+    TAuxCompLubnome: TStringField;
+    TAuxCompLubsyncaws: TWideStringField;
+    TLubrificacaoidcompartimento: TIntegerField;
     procedure TstartBombaReconcileError(DataSet: TFDDataSet; E: EFDException;
       UpdateKind: TFDDatSRowState; var Action: TFDDAptReconcileAction);
     procedure FConBeforeConnect(Sender: TObject);
@@ -272,6 +321,9 @@ type
       E: EFDException; UpdateKind: TFDDatSRowState;
       var Action: TFDDAptReconcileAction);
     procedure TMovLocalEstoqueReconcileError(DataSet: TFDDataSet;
+      E: EFDException; UpdateKind: TFDDatSRowState;
+      var Action: TFDDAptReconcileAction);
+    procedure TLubrificacaoprodutosReconcileError(DataSet: TFDDataSet;
       E: EFDException; UpdateKind: TFDDatSRowState;
       var Action: TFDDAptReconcileAction);
   private
@@ -293,6 +345,7 @@ type
     function  BuscaMaquina(vQrCod:string):Boolean;
     procedure AbrirAbastecimentoOutros(vIdAbasteciemnto, vFiltro: string);
     procedure DeletaAbastecimento(vId:string);
+    procedure DeletaStart(vId:string);
     procedure DeletaStartBomba(vId:string);
     procedure DeletaAbastecimentoOutros(vId:string);
     procedure SalvarAcesso(vUsuario, Senha: string);
@@ -304,12 +357,21 @@ type
     function  VerificaStartAberto(vIdLocal:string):Boolean;
     function RetornaIdAbastecimento:integer;
     function VerificaIDExite(Atabela,AId:string):Boolean;
-    procedure AbrirTrasnferencia(vFiltro:string);
+    procedure AbrirTrasnferencia(vFiltro:TDate);
     procedure DeletaTransferencia(vIdTransferencia:string);
     function RetornaSaldoAtualDia(vIdLocal:string):string;
     procedure AtualizaCentroCustoConfig(idCentro:string);
     procedure RetornaUltimoKMHorimetro(vIdMaquina:string);
-
+    procedure AbrirLubrificacaoprodutos(vIdLubrificacao: string);
+    procedure AbrirLubrificacao(vFiltro: string);
+    function RetornaMaxId(AnomeTabela: string): string;
+    procedure DeletaLubrificacao(vId:string);
+    procedure DeletaLubrificacaoProduto(vId:string);
+    function RetornaIdLubrificacao: integer;
+    procedure AtualizaImagemTransferencia(vIdTransf,vImgIni,vImgFim:string);
+    procedure AtualizaImagemAbastecimento(vIdTransf, vImgHorimetro,
+     vImgkm,vImgBomba: string);
+    function ReturnsIdByName(vTable, Nome: string): string;
   end;
 
 var
@@ -322,6 +384,60 @@ implementation
 {$R *.dfm}
 
 { TdmDB }
+procedure Tdmdb.AbrirLubrificacao(vFiltro: string);
+begin
+ with TLubrificacao,TLubrificacao.SQL do
+ begin
+   Clear;
+   Add('select');
+   Add(' l.*,');
+   Add(' case');
+   Add('  when tipo=1 then ''TROCA''');
+   Add('  when tipo=2 then ''REMONTA''');
+   Add(' end TipoStr,');
+   Add(' m.prefixo maquina,');
+   Add(' c.nome centrocusto');
+   Add('from lubrificacao l');
+   Add('join maquinaveiculo m on l.idmaquina =m.id');
+   Add('join centrocusto c on c.id=l.idcentrocusto');
+   Add('where l.status=1');
+   Add(vFiltro);
+   Add('order by datareg desc');
+   Open;
+ end;
+end;
+
+function Tdmdb.RetornaMaxId(AnomeTabela: string): string;
+begin
+ with qryAux,qryAux.SQL do
+ begin
+   Clear;
+   Add('select max(id) maxid from '+AnomeTabela);
+   Open;
+   if FieldByName('maxid').AsString.Length=0 then
+    Result :='1'
+   else
+    Result :=FieldByName('maxid').AsString;
+ end;
+end;
+
+procedure Tdmdb.AbrirLubrificacaoprodutos(vIdLubrificacao: string);
+begin
+ with TLubrificacaoprodutos,TLubrificacaoprodutos.SQL do
+ begin
+   Clear;
+   Add('select');
+   Add('l.*,');
+   Add('p.nome produto,');
+   Add('p.codigofabricante');
+   Add('from lubrificacaoprodutos l');
+   Add('join produtos p on l.idproduto=p.id');
+   Add('where l.status=1');
+   Add('and l.idlubrificacao='+vIdLubrificacao);
+   Open;
+ end;
+end;
+
 
 procedure TdmDB.SalvarAcesso(vUsuario, Senha: string);
 begin
@@ -353,6 +469,13 @@ begin
 end;
 
 procedure TdmDB.TAbastecimentoOutrosReconcileError(DataSet: TFDDataSet;
+  E: EFDException; UpdateKind: TFDDatSRowState;
+  var Action: TFDDAptReconcileAction);
+begin
+  ShowMessage(e.Message);
+end;
+
+procedure TdmDB.TLubrificacaoprodutosReconcileError(DataSet: TFDDataSet;
   E: EFDException; UpdateKind: TFDDatSRowState;
   var Action: TFDDAptReconcileAction);
 begin
@@ -497,7 +620,7 @@ begin
    Add('where a.status=1');
    Add('and a.idcentrocusto='+vIdCentroCusto);
    Add(vFiltro);
-   Add('order by id desc');
+   Add('order by a.dataabastecimento,a.hora desc');
    Open;
  end;
 end;
@@ -553,7 +676,7 @@ begin
    Add('WHERE s.status>-1');
    Add('and s.idcentrocusto='+vIdCentroCusto);
    Add(vFiltro);
-   Add('Order by dataastart desc');
+   Add('Order by dataastart,horastart desc');
    Open;
  end;
 end;
@@ -570,7 +693,7 @@ begin
  end;
 end;
 
-procedure TdmDB.AbrirTrasnferencia(vFiltro: string);
+procedure TdmDB.AbrirTrasnferencia(vFiltro:TDate);
 begin
   with TMovLocalEstoque,TMovLocalEstoque.SQL do
   begin
@@ -580,12 +703,17 @@ begin
     Add('d.nome LocalDestino,');
     Add('p.nome Produto');
     Add('from tranferencialocalestoque a');
-    Add('join localestoque o on o.id=a.idlocalestoqueorigem');
-    Add('join localestoque d on d.id=a.idlocalestoquedetino');
-    Add('join produtos p ON o.idcentrocusto=p.id');
+    Add('left join localestoque o on o.id=a.idlocalestoqueorigem');
+    Add('left join localestoque d on d.id=a.idlocalestoquedetino');
+    Add('left join produtos p ON o.idcentrocusto=p.id');
     Add('where a.status=1');
-    Add(vFiltro);
+//    Add('and datamov='+FormatDateTime('dd/mm/yyyy',vFiltro).QuotedString);
+    Add('order by id desc');
+//    ParamByName('datamov').AsDate := vFiltro;
     Open;
+    TMovLocalEstoque.Filtered := false;
+    TMovLocalEstoque.Filter   := 'datamov='+DateToStr(vFiltro).QuotedString;
+    TMovLocalEstoque.Filtered := true;
   end;
 end;
 
@@ -604,6 +732,44 @@ begin
  qryAux.free;
 end;
 
+procedure TdmDB.AtualizaImagemTransferencia(vIdTransf, vImgIni,
+  vImgFim: string);
+var
+ qryAux : TFDQuery;
+begin
+ qryAux := TFDQuery.Create(nil);
+ qryAux.Connection := FCon;
+ with qryAux,qryAux.sql do
+ begin
+   Clear;
+   Add('update tranferencialocalestoque set img='+vImgIni.QuotedString);
+   Add('imgfim='+vImgFim.QuotedString);
+   Add('where id='+vIdTransf);
+   ExecSQL;
+ end;
+ qryAux.free;
+end;
+
+procedure TdmDB.AtualizaImagemAbastecimento(vIdTransf, vImgHorimetro,
+  vImgkm,vImgBomba: string);
+var
+ qryAux : TFDQuery;
+begin
+ qryAux := TFDQuery.Create(nil);
+ qryAux.Connection := FCon;
+ with qryAux,qryAux.sql do
+ begin
+   Clear;
+   Add('update abastecimento set img='+vImgHorimetro.QuotedString);
+   Add(',img2='+vImgBomba.QuotedString);
+   Add(',img3='+vImgkm.QuotedString);
+   Add('where id='+vIdTransf);
+   ExecSQL;
+ end;
+ qryAux.free;
+end;
+
+
 procedure TdmDB.DeletaAbastecimentoOutros(vId:string);
 var
  qryAux : TFDQuery;
@@ -620,6 +786,25 @@ begin
  qryAux.free;
 end;
 
+function TdmDB.ReturnsIdByName(vTable, Nome: string): string;
+var
+ vQry:TFDQuery;
+begin
+ vQry:=TFDQuery.Create(nil);
+ vQry.Connection := FCon;
+ with vQry,vQry.SQL do
+ begin
+   Clear;
+   Add('SELECT * FROM '+vTable);
+   Add('WHERE NOME=:NOME');
+   ParamByName('NOME').AsString  := Nome;
+   Open;
+   Result := vQry.FieldByName('id').AsString
+ end;
+ vQry.Free;
+end;
+
+
 procedure TdmDB.DeletaAbastecimento(vId:string);
 var
  qryAux : TFDQuery;
@@ -630,6 +815,54 @@ begin
  begin
    Clear;
    Add('delete from abastecimento');
+   Add('WHERE ID='+vId);
+   ExecSQL;
+ end;
+ qryAux.free;
+end;
+
+procedure TdmDB.DeletaStart(vId:string);
+var
+ qryAux : TFDQuery;
+begin
+ qryAux := TFDQuery.Create(nil);
+ qryAux.Connection := FCon;
+ with qryAux,qryAux.sql do
+ begin
+   Clear;
+   Add('delete from startbomba');
+   Add('WHERE ID='+vId);
+   ExecSQL;
+ end;
+ qryAux.free;
+end;
+
+procedure TdmDB.DeletaLubrificacao(vId:string);
+var
+ qryAux : TFDQuery;
+begin
+ qryAux := TFDQuery.Create(nil);
+ qryAux.Connection := FCon;
+ with qryAux,qryAux.sql do
+ begin
+   Clear;
+   Add('delete from lubrificacao');
+   Add('WHERE ID='+vId);
+   ExecSQL;
+ end;
+ qryAux.free;
+end;
+
+procedure TdmDB.DeletaLubrificacaoProduto(vId:string);
+var
+ qryAux : TFDQuery;
+begin
+ qryAux := TFDQuery.Create(nil);
+ qryAux.Connection := FCon;
+ with qryAux,qryAux.sql do
+ begin
+   Clear;
+   Add('delete from lubrificacaoprodutos');
    Add('WHERE ID='+vId);
    ExecSQL;
  end;
@@ -675,7 +908,7 @@ begin
  {$IF DEFINED(iOS) or DEFINED(ANDROID)}
    FCon.Params.DriverID :='SQLite';
    FCon.Params.Values['Database'] :=
-   TPath.Combine(TPath.GetDocumentsPath,'Fueldb.db');
+   TPath.Combine(TPath.GetDocumentsPath,'Fuel.db');
  {$ENDIF}
  {$IFDEF MSWINDOWS}
    vPath := 'E:\20102021\Projetos2021\Pecuarizze\ManejoPastagem\Mobile\db\dbw.db';
@@ -701,6 +934,16 @@ begin
  repeat
    vid := Random(900000);
   until (dmDB.VerificaIDExite('abastecimento',intToStr(vid)));
+  Result :=vid;
+end;
+
+function TdmDB.RetornaIdLubrificacao: integer;
+var
+ vid:Integer;
+begin
+ repeat
+   vid := Random(900000);
+  until (dmDB.VerificaIDExite('lubrificacao',intToStr(vid)));
   Result :=vid;
 end;
 
@@ -819,6 +1062,31 @@ var
 begin
  vQryAux:=TFDQuery.Create(nil);
  vQryAux.Connection := FCon;
+ if VerificaTabelaExiste('compartimentolubricficacao') then
+ begin
+   with vQryAux,vQryAux.SQL do
+  begin
+   Clear;
+   Add('CREATE TABLE compartimentolubricficacao (');
+   Add('id integer NOT NULL,');
+   Add('status integer NOT NULL DEFAULT 1,');
+   Add('datareg timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,');
+   Add('idusuario int4 NOT NULL,');
+   Add('dataalteracao timestamptz,');
+   Add('idusuarioalteracao int4,');
+   Add('nome varchar (50),');
+   Add('syncaws int4 NOT NULL DEFAULT 0,');
+   Add('CONSTRAINT auxcompartimentolubricficacao PRIMARY KEY (id));');
+   try
+    ExecSQL;
+   except
+     on E : Exception do
+      ShowMessage('Erro ao inserir Campo : '+E.Message);
+   end;
+  end;
+ end;
+
+
  if not VerificaCampoExiste('volumetanque','maquinaveiculo') then
  with vQryAux,vQryAux.SQL do
  begin
@@ -828,9 +1096,62 @@ begin
     ExecSQL;
    except
      on E : Exception do
-      ShowMessage('Erro ao inserir Controle de Acesso : '+E.Message);
+      ShowMessage('Erro ao inserir Campo : '+E.Message);
    end;
  end;
+
+ if not VerificaCampoExiste('img','tranferencialocalestoque') then
+ with vQryAux,vQryAux.SQL do
+ begin
+   Clear;
+   Add('ALTER TABLE tranferencialocalestoque add img text');
+   try
+    ExecSQL;
+   except
+     on E : Exception do
+      ShowMessage('Erro ao inserir Campo : '+E.Message);
+   end;
+ end;
+
+ if not VerificaCampoExiste('imgfim','tranferencialocalestoque') then
+ with vQryAux,vQryAux.SQL do
+ begin
+   Clear;
+   Add('ALTER TABLE tranferencialocalestoque add imgfim text');
+   try
+    ExecSQL;
+   except
+     on E : Exception do
+      ShowMessage('Erro ao inserir Campo : '+E.Message);
+   end;
+ end;
+
+ if not VerificaCampoExiste('idlocalestoque','lubrificacao') then
+ with vQryAux,vQryAux.SQL do
+ begin
+   Clear;
+   Add('ALTER TABLE lubrificacao add idlocalestoque integer');
+   try
+    ExecSQL;
+   except
+     on E : Exception do
+      ShowMessage('Erro ao inserir Campo : '+E.Message);
+   end;
+ end;
+
+ if not VerificaCampoExiste('idcompartimento','lubrificacao') then
+ with vQryAux,vQryAux.SQL do
+ begin
+   Clear;
+   Add('ALTER TABLE lubrificacao add idcompartimento integer');
+   try
+    ExecSQL;
+   except
+     on E : Exception do
+      ShowMessage('Erro ao inserir Campo : '+E.Message);
+   end;
+ end;
+
  vQryAux.Free;
 end;
 

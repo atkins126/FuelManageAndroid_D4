@@ -13,12 +13,10 @@ uses
   FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf,
   FireDAC.DApt.Intf, FireDAC.Stan.Async, Data.DB, FireDAC.Comp.DataSet,
   FMX.TreeView,System.Net.HttpClient, FMX.Memo.Types
- {$IF DEFINED(iOS) or DEFINED(ANDROID)}
   ,AndroidApi.helpers,AndroidApi.JNI.JavaTypes,AndroidApi.JNI.GraphicsContentViewText,
   Androidapi.JNI.Os,Androidapi.JNIBridge,Androidapi.JNI.Telephony,Androidapi.JNI.Provider,
   FMX.Helpers.Android,FMX.Platform.Android,System.PushNotification,System.Permissions,
   FMX.VirtualKeyboard
- {$ENDIF}
  {$IFDEF MSWINDOWS}
   ,Winapi.Windows
  {$ENDIF}
@@ -136,25 +134,15 @@ type
     ShadowEffect7: TShadowEffect;
     Label7: TLabel;
     Layout14: TLayout;
-    btnAbastecimento: TRectangle;
     ShadowEffect3: TShadowEffect;
     Label5: TLabel;
-    Layout15: TLayout;
-    btnSync: TRectangle;
-    Image5: TImage;
-    ShadowEffect4: TShadowEffect;
-    Label6: TLabel;
     imgScore: TImage;
     Layout17: TLayout;
     imgListaPreto: TImage;
     ClearEditButton1: TClearEditButton;
     PasswordEditButton1: TPasswordEditButton;
-    Layout26: TLayout;
-    Label8: TLabel;
     btnStatrFimDiario: TRectangle;
     imgStart: TImage;
-    ShadowEffect2: TShadowEffect;
-    imgCobustivel: TImage;
     Layout29: TLayout;
     Label9: TLabel;
     chkSalvaSenha: TSwitch;
@@ -186,11 +174,6 @@ type
     imgCam2: TImage;
     imgProdutos2: TImage;
     imgTransf: TImage;
-    Layout38: TLayout;
-    btnMovEstoque: TRectangle;
-    Image6: TImage;
-    ShadowEffect6: TShadowEffect;
-    Label13: TLabel;
     Layout40: TLayout;
     Rectangle9: TRectangle;
     Image7: TImage;
@@ -209,6 +192,32 @@ type
     Label17: TLabel;
     edtNumPatrimonio: TEdit;
     ClearEditButton5: TClearEditButton;
+    imgLub: TImage;
+    imgInsumos: TImage;
+    btnSync: TRectangle;
+    Image5: TImage;
+    ShadowEffect4: TShadowEffect;
+    Label6: TLabel;
+    Layout15: TLayout;
+    Image10: TImage;
+    btnAbastecimento: TRectangle;
+    imgCobustivel: TImage;
+    ShadowEffect2: TShadowEffect;
+    Label8: TLabel;
+    btnMovEstoque: TRectangle;
+    Image6: TImage;
+    ShadowEffect6: TShadowEffect;
+    Label13: TLabel;
+    btnLubrificacao: TRectangle;
+    Image8: TImage;
+    ShadowEffect11: TShadowEffect;
+    Label20: TLabel;
+    imgLubriProd: TImage;
+    Layout26: TLayout;
+    Rectangle13: TRectangle;
+    Image11: TImage;
+    ShadowEffect12: TShadowEffect;
+    lblLubrificacaoSync: TLabel;
     procedure btnEntrarMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Single);
     procedure btnEntrarMouseDown(Sender: TObject; Button: TMouseButton;
@@ -240,9 +249,10 @@ type
     procedure btnMaquinasClick(Sender: TObject);
     procedure FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
       Shift: TShiftState);
+    procedure btnLubrificacaoClick(Sender: TObject);
   private
     {$IF DEFINED(iOS) or DEFINED(ANDROID)}
-     function  GetVersaoArq: string;
+     function GetVersaoArq: string;
      function NetState(out tipoConexao: string): boolean;
      function CheckInternet: boolean;
     {$ENDIF}
@@ -250,7 +260,9 @@ type
      function  GetVersaoArqWin:string;
     {$ENDIF}
   public
+    vLubrificacao:integer;
     procedure MudarAba(ATabItem: TTabItem; sender: TObject);
+    procedure MostraMenu;
   end;
 
 var
@@ -261,7 +273,7 @@ implementation
 {$R *.fmx}
 
 uses UDmDB, UDmSyncData, NetworkState, UAbastecimento, UStartBomba, UMovEstoque,
-  Maquinas;
+  Maquinas, ULubrificacao;
 
 procedure TfrmPrincipal.btnConfigClick(Sender: TObject);
 begin
@@ -273,12 +285,23 @@ begin
   dmDB.qryConfig.Edit;
  edtIpServidorDados.Text    := dmDB.qryConfigIP_SERVIDOR.AsString;
  edtPortaServidorDados.Text := dmDB.qryConfigPOTA_SERVIDOR.AsString;
+ edtNumPatrimonio.Text      := dmDB.qryConfigPATRIMONIO.AsString;
  MudarAba(tbiConfig,sender);
 end;
 
 procedure TfrmPrincipal.btnCloseClick(Sender: TObject);
 begin
  Application.Terminate;
+end;
+
+procedure TfrmPrincipal.MostraMenu;
+begin
+  btnConfig.Width          := (frmPrincipal.Width/2)-20;
+  btnSync.Width            := (frmPrincipal.Width/2)-20;
+  btnStatrFimDiario.Width  := (frmPrincipal.Width/2)-20;
+  btnMovEstoque.Width      := (frmPrincipal.Width/2)-20;
+  btnAbastecimento.Width   := (frmPrincipal.Width/2)-20;
+  btnLubrificacao.Width    := (frmPrincipal.Width/2)-20;
 end;
 
 procedure TfrmPrincipal.MudarAba(ATabItem: TTabItem; sender: TObject);
@@ -451,7 +474,7 @@ begin
     dmdb.qryConfig.ApplyUpdates(-1);
     dmdb.SalvarAcesso(edtUsuario.Text,edtSenha.Text);
   end;
-  btnConfig.Visible := dmdb.vTipoUser='1';
+  btnConfig.Enabled    := dmdb.vTipoUser='1';
   MudarAba(tbiMnu,sender);
   imgMnu.Position.Y := 0;
   imgMnu.Opacity := 0;
@@ -495,6 +518,20 @@ begin
      ProgressBar1.Value :=20;
     end);
     mlog.text :=(dmSync.PostAbastecimento);
+
+    TThread.Synchronize(nil, procedure
+    begin
+     mlog.text :=('Enviando Lubrificação');
+     ProgressBar1.Value :=20;
+    end);
+    mlog.text :=(dmSync.PostLubrificacao);
+
+    TThread.Synchronize(nil, procedure
+    begin
+     mlog.text :=('Enviando Lubrificação Produtos');
+     ProgressBar1.Value :=20;
+    end);
+    mlog.text :=(dmSync.PostLubrificacaoProdutos);
 
 //    TThread.Synchronize(nil, procedure
 //    begin
@@ -545,6 +582,14 @@ begin
     end);
     mlog.text :=(dmSync.GetMaquinas);
 
+    TThread.Synchronize(nil, procedure
+    begin
+     mlog.text :=('Baixando Compartimentos Lubrificacao...');
+     ProgressBar1.Value :=95;
+    end);
+    mlog.text :=(dmSync.GetCompartimentoLub);
+
+
 
     TThread.Synchronize(nil, procedure
     begin
@@ -566,11 +611,18 @@ begin
      dmSync.TMovLocalEstoque.Open;
      lblTrasnferenciaPendente.Text  := 'Transferência Pendente :'+IntToStr(dmSync.TMovLocalEstoque.RecordCount);
 
+     dmSync.TLubrificacao.Close;
+     dmSync.TLubrificacao.Open;
+     lblLubrificacaoSync.Text        := 'Lubrificaçao Pendente :'+IntToStr(dmSync.TAbastecimento.RecordCount);
+
+
      MessageDlg('Dados Sincronizados com Sucesso!'+#13+
       'Sistema deve ser reiniciado!', System.UITypes.TMsgDlgType.mtInformation,
        [System.UITypes.TMsgDlgBtn.mbYes], 0,
        procedure(const AResult: System.UITypes.TModalResult)
        begin
+         SharedActivity.finish;
+         Close;
        end);
     end);
    end).Start;
@@ -597,6 +649,16 @@ end;
 procedure TfrmPrincipal.btnFechaSyncClick(Sender: TObject);
 begin
  MudarAba(tbiMnu,sender);
+end;
+
+procedure TfrmPrincipal.btnLubrificacaoClick(Sender: TObject);
+begin
+  vLubrificacao :=1;
+  if Not Assigned(frmLubrificacao) then
+   Application.CreateForm(TfrmLubrificacao, frmLubrificacao);
+  frmLubrificacao.ShowModal(procedure(ModalResult: TModalResult)
+  begin
+  end);
 end;
 
 procedure TfrmPrincipal.btnMaquinasClick(Sender: TObject);
@@ -650,6 +712,11 @@ begin
  dmSync.TAbastecimento.Open;
  lblAbastecimentoPendente.Text   := 'Abastecimento Pendente :'+IntToStr(dmSync.TAbastecimento.RecordCount);
 
+ dmSync.TLubrificacao.Close;
+ dmSync.TLubrificacao.Open;
+ lblLubrificacaoSync.Text        := 'Lubrificaçao Pendente :'+IntToStr(dmSync.TLubrificacao.RecordCount);
+
+
  dmSync.TStartDiario.Close;
  dmSync.TStartDiario.Open;
  lblStartDiarioSync.Text        := 'Start Diário Pendente :'+IntToStr(dmSync.TStartDiario.RecordCount);
@@ -698,6 +765,7 @@ end;
 
 procedure TfrmPrincipal.FormShow(Sender: TObject);
 begin
+ MostraMenu;
  TThread.CreateAnonymousThread(procedure
  begin
    TThread.Synchronize(nil,procedure

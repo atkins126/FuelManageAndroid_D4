@@ -232,6 +232,9 @@ type
       Shift: TShiftState);
     procedure edtLitrosTyping(Sender: TObject);
     procedure edtLitrosFimTyping(Sender: TObject);
+    procedure ListaGesture(Sender: TObject; const EventInfo: TGestureEventInfo;
+      var Handled: Boolean);
+    procedure btnExcluiItemClick(Sender: TObject);
   private
     { Private declarations }
      FService : IFMXVirtualKeyboardService;
@@ -291,13 +294,13 @@ end;
 procedure TfrmStartBomba.btnBuscarMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 begin
-  btnExcluiItem.Opacity :=0.5;
+  TRectangle(sender).Opacity :=0.5;
 end;
 
 procedure TfrmStartBomba.btnBuscarMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Single);
 begin
-  btnExcluiItem.Opacity :=1;
+  TRectangle(sender).Opacity :=1;
 end;
 
 procedure TfrmStartBomba.btnConfirmarAClick(Sender: TObject);
@@ -369,6 +372,33 @@ begin
  end;
 end;
 
+procedure TfrmStartBomba.btnExcluiItemClick(Sender: TObject);
+begin
+btnExcluiItem.Visible := false;
+ if vFlagSync='0' then
+ begin
+   MessageDlg('Deseja Realmente Deletar esse Registro?', System.UITypes.TMsgDlgType.mtInformation,
+   [System.UITypes.TMsgDlgBtn.mbYes,
+   System.UITypes.TMsgDlgBtn.mbNo
+   ], 0,
+   procedure(const AResult: System.UITypes.TModalResult)
+   begin
+    case AResult of
+     mrYES:
+     begin
+       dmDB.DeletaStart(vIdStart);
+       GeraLista('');
+     end;
+     mrNo:
+    end;
+   end);
+ end
+ else
+ begin
+   ShowMessage('Registro ja Sincronizado!!');
+ end;
+end;
+
 procedure TfrmStartBomba.btnFotoFimClick(Sender: TObject);
 begin
  vImgCapture:=2;
@@ -426,7 +456,9 @@ begin
  LayLitrosIni.Enabled    := true;
  RecImgStart.Enabled     := true;
  btnFotoInicio.Enabled   := true;
-
+ edtData.Enabled         := true;
+ edtHora.Enabled         := true;
+ edtData.Date            := date;
 
  imgStart.Bitmap := nil;
  imgStop.Bitmap  := nil;
@@ -502,7 +534,6 @@ var
 begin
   Input := TBytesStream.Create;
   try
-    Bitmap.Rotate(90);
     Bitmap.Resize(350,350);
     Bitmap.SaveToStream(Input);
     Input.Position := 0;
@@ -708,6 +739,12 @@ begin
  edtLitros.Text       :='';
  edtLitrosFim.Text    :='';
  edtCombustivel.Text  :='';
+end;
+
+procedure TfrmStartBomba.ListaGesture(Sender: TObject;
+  const EventInfo: TGestureEventInfo; var Handled: Boolean);
+begin
+ btnExcluiItem.Visible   := true;
 end;
 
 procedure TfrmStartBomba.ListaItemClickEx(const Sender: TObject;

@@ -34,12 +34,13 @@ object dmDB: TdmDB
     Params.Strings = (
       
         'Database=D:\Projetos2021\FullManageAndroid\FuelManageAndroid_D4\' +
-        'db\Fueldb.db'
+        'db\Fuel.db'
       'DriverID=SQLite')
+    Connected = True
     LoginPrompt = False
     BeforeConnect = FConBeforeConnect
-    Left = 96
-    Top = 96
+    Left = 184
+    Top = 48
   end
   object qryConfig: TFDQuery
     CachedUpdates = True
@@ -330,6 +331,16 @@ object dmDB: TdmDB
       Origin = 'id'
       ProviderFlags = [pfInWhere, pfInKey]
       ReadOnly = True
+    end
+    object TAbastecimentoOutrosidmaquina: TIntegerField
+      FieldName = 'idmaquina'
+      Origin = 'idmaquina'
+      Required = True
+    end
+    object TAbastecimentoOutrostipo: TIntegerField
+      FieldName = 'tipo'
+      Origin = 'tipo'
+      Required = True
     end
   end
   object TLocalEstoque: TFDQuery
@@ -1133,6 +1144,16 @@ object dmDB: TdmDB
       ReadOnly = True
       Size = 50
     end
+    object TMovLocalEstoqueimg: TWideMemoField
+      FieldName = 'img'
+      Origin = 'img'
+      BlobType = ftWideMemo
+    end
+    object TMovLocalEstoqueimgfim: TWideMemoField
+      FieldName = 'imgfim'
+      Origin = 'imgfim'
+      BlobType = ftWideMemo
+    end
   end
   object TUsuario: TFDQuery
     CachedUpdates = True
@@ -1276,8 +1297,8 @@ object dmDB: TdmDB
       'select'
       '*'
       'from abastecimento a')
-    Left = 80
-    Top = 216
+    Left = 40
+    Top = 56
     object TAbastecimentoFotoid: TFDAutoIncField
       FieldName = 'id'
       Origin = 'id'
@@ -1410,6 +1431,276 @@ object dmDB: TdmDB
       Origin = 'kmatual'
       Precision = 15
       Size = 3
+    end
+  end
+  object TLubrificacaoprodutos: TFDQuery
+    CachedUpdates = True
+    OnReconcileError = TLubrificacaoprodutosReconcileError
+    Connection = FCon
+    SQL.Strings = (
+      'select '
+      'l.*,'
+      'p.nome produto,'
+      'p.codigofabricante '
+      'from lubrificacaoprodutos l '
+      'join produtos p on l.idproduto=p.id'
+      'where l.status=1')
+    Left = 48
+    Top = 264
+    object TLubrificacaoprodutosid: TIntegerField
+      FieldName = 'id'
+      Origin = 'id'
+      ProviderFlags = [pfInUpdate, pfInWhere, pfInKey]
+    end
+    object TLubrificacaoprodutosstatus: TWideStringField
+      FieldName = 'status'
+      Origin = 'status'
+      Size = 32767
+    end
+    object TLubrificacaoprodutosdatareg: TWideStringField
+      FieldName = 'datareg'
+      Origin = 'datareg'
+      Size = 32767
+    end
+    object TLubrificacaoprodutosidusuario: TWideStringField
+      FieldName = 'idusuario'
+      Origin = 'idusuario'
+      Size = 32767
+    end
+    object TLubrificacaoprodutosdataalteracao: TWideStringField
+      FieldName = 'dataalteracao'
+      Origin = 'dataalteracao'
+      Size = 32767
+    end
+    object TLubrificacaoprodutosidusuarioalteracao: TWideStringField
+      FieldName = 'idusuarioalteracao'
+      Origin = 'idusuarioalteracao'
+      Size = 32767
+    end
+    object TLubrificacaoprodutosidlubrificacao: TWideStringField
+      FieldName = 'idlubrificacao'
+      Origin = 'idlubrificacao'
+      Size = 32767
+    end
+    object TLubrificacaoprodutosidproduto: TWideStringField
+      FieldName = 'idproduto'
+      Origin = 'idproduto'
+      Size = 32767
+    end
+    object TLubrificacaoprodutosqtd: TBCDField
+      FieldName = 'qtd'
+      Origin = 'qtd'
+      Precision = 15
+      Size = 2
+    end
+    object TLubrificacaoprodutossyncaws: TWideStringField
+      FieldName = 'syncaws'
+      Origin = 'syncaws'
+      Size = 32767
+    end
+    object TLubrificacaoprodutossyncfaz: TWideStringField
+      FieldName = 'syncfaz'
+      Origin = 'syncfaz'
+      Size = 32767
+    end
+    object TLubrificacaoprodutosproduto: TStringField
+      AutoGenerateValue = arDefault
+      FieldName = 'produto'
+      Origin = 'nome'
+      ProviderFlags = []
+      ReadOnly = True
+      Size = 50
+    end
+    object TLubrificacaoprodutoscodigofabricante: TStringField
+      AutoGenerateValue = arDefault
+      FieldName = 'codigofabricante'
+      Origin = 'codigofabricante'
+      ProviderFlags = []
+      ReadOnly = True
+      Size = 30
+    end
+  end
+  object TLubrificacao: TFDQuery
+    CachedUpdates = True
+    Connection = FCon
+    SQL.Strings = (
+      'select '
+      ' l.*,'
+      ' case '
+      '  when tipo=1 then '#39'TROCA'#39' '
+      '  when tipo=2 then '#39'REMONTA'#39'  '
+      ' end TipoStr,'
+      ' m.prefixo maquina,'
+      'c.nome centrocusto '
+      'from lubrificacao l '
+      'join maquinaveiculo m on l.idmaquina =m.id '
+      'join centrocusto c on c.id=l.idcentrocusto '
+      'where l.status=1')
+    Left = 32
+    Top = 184
+    object TLubrificacaoid: TIntegerField
+      FieldName = 'id'
+      Origin = 'id'
+      ProviderFlags = [pfInUpdate, pfInWhere, pfInKey]
+    end
+    object TLubrificacaostatus: TWideStringField
+      FieldName = 'status'
+      Origin = 'status'
+      Size = 32767
+    end
+    object TLubrificacaodatareg: TWideStringField
+      FieldName = 'datareg'
+      Origin = 'datareg'
+      Size = 32767
+    end
+    object TLubrificacaoidusuario: TWideStringField
+      FieldName = 'idusuario'
+      Origin = 'idusuario'
+      Size = 32767
+    end
+    object TLubrificacaodataalteracao: TWideStringField
+      FieldName = 'dataalteracao'
+      Origin = 'dataalteracao'
+      Size = 32767
+    end
+    object TLubrificacaoidusuarioalteracao: TWideStringField
+      FieldName = 'idusuarioalteracao'
+      Origin = 'idusuarioalteracao'
+      Size = 32767
+    end
+    object TLubrificacaoidmaquina: TWideStringField
+      FieldName = 'idmaquina'
+      Origin = 'idmaquina'
+      Size = 32767
+    end
+    object TLubrificacaodatatroca: TDateField
+      FieldName = 'datatroca'
+      Origin = 'datatroca'
+    end
+    object TLubrificacaotipo: TWideStringField
+      FieldName = 'tipo'
+      Origin = 'tipo'
+      Size = 32767
+    end
+    object TLubrificacaosyncaws: TWideStringField
+      FieldName = 'syncaws'
+      Origin = 'syncaws'
+      Size = 32767
+    end
+    object TLubrificacaosyncfaz: TWideStringField
+      FieldName = 'syncfaz'
+      Origin = 'syncfaz'
+      Size = 32767
+    end
+    object TLubrificacaohorimetro: TBCDField
+      FieldName = 'horimetro'
+      Origin = 'horimetro'
+      Precision = 15
+      Size = 2
+    end
+    object TLubrificacaokm: TBCDField
+      FieldName = 'km'
+      Origin = 'km'
+      Precision = 15
+      Size = 2
+    end
+    object TLubrificacaoidcentrocusto: TWideStringField
+      FieldName = 'idcentrocusto'
+      Origin = 'idcentrocusto'
+      Size = 32767
+    end
+    object TLubrificacaoTipoStr: TWideStringField
+      AutoGenerateValue = arDefault
+      FieldName = 'TipoStr'
+      Origin = 'TipoStr'
+      ProviderFlags = []
+      ReadOnly = True
+      Size = 32767
+    end
+    object TLubrificacaomaquina: TStringField
+      AutoGenerateValue = arDefault
+      FieldName = 'maquina'
+      Origin = 'prefixo'
+      ProviderFlags = []
+      ReadOnly = True
+    end
+    object TLubrificacaocentrocusto: TStringField
+      AutoGenerateValue = arDefault
+      FieldName = 'centrocusto'
+      Origin = 'nome'
+      ProviderFlags = []
+      ReadOnly = True
+      Size = 50
+    end
+    object TLubrificacaoalerta: TWideStringField
+      FieldName = 'alerta'
+      Origin = 'alerta'
+      Size = 32767
+    end
+    object TLubrificacaodescricaoalerta: TWideMemoField
+      FieldName = 'descricaoalerta'
+      Origin = 'descricaoalerta'
+      BlobType = ftWideMemo
+    end
+    object TLubrificacaoidlocalestoque: TIntegerField
+      FieldName = 'idlocalestoque'
+      Origin = 'idlocalestoque'
+    end
+    object TLubrificacaoidcompartimento: TIntegerField
+      FieldName = 'idcompartimento'
+      Origin = 'idcompartimento'
+    end
+  end
+  object TAuxCompLub: TFDQuery
+    Connection = FCon
+    SQL.Strings = (
+      'select * from compartimentolubricficacao'
+      'where status=1')
+    Left = 608
+    Top = 264
+    object TAuxCompLubid: TIntegerField
+      FieldName = 'id'
+      Origin = 'id'
+      ProviderFlags = [pfInUpdate, pfInWhere, pfInKey]
+      Required = True
+    end
+    object TAuxCompLubstatus: TIntegerField
+      FieldName = 'status'
+      Origin = 'status'
+      Required = True
+    end
+    object TAuxCompLubdatareg: TWideStringField
+      FieldName = 'datareg'
+      Origin = 'datareg'
+      Required = True
+      Size = 32767
+    end
+    object TAuxCompLubidusuario: TWideStringField
+      FieldName = 'idusuario'
+      Origin = 'idusuario'
+      Required = True
+      Size = 32767
+    end
+    object TAuxCompLubdataalteracao: TWideStringField
+      FieldName = 'dataalteracao'
+      Origin = 'dataalteracao'
+      Size = 32767
+    end
+    object TAuxCompLubidusuarioalteracao: TWideStringField
+      FieldName = 'idusuarioalteracao'
+      Origin = 'idusuarioalteracao'
+      Size = 32767
+    end
+    object TAuxCompLubnome: TStringField
+      FieldName = 'nome'
+      Origin = 'nome'
+      Size = 50
+    end
+    object TAuxCompLubsyncaws: TWideStringField
+      FieldName = 'syncaws'
+      Origin = 'syncaws'
+      Required = True
+      Size = 32767
     end
   end
 end

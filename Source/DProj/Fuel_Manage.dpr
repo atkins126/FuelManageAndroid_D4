@@ -16,7 +16,8 @@ uses
   UnitCamera in '..\Camera\UnitCamera.pas' {FrmCamera},
   NetworkState.Android in '..\util\NetworkState.Android.pas',
   UMovEstoque in '..\MovEstoque\UMovEstoque.pas' {frmMovEstoque},
-  uFormat in '..\util\uFormat.pas';
+  uFormat in '..\util\uFormat.pas',
+  ULubrificacao in '..\Lubrificacao\ULubrificacao.pas' {frmLubrificacao};
 
 {$R *.res}
 
@@ -33,5 +34,6 @@ begin
   Application.CreateForm(TfrmStartBomba, frmStartBomba);
   Application.CreateForm(TFrmCamera, FrmCamera);
   Application.CreateForm(TfrmMovEstoque, frmMovEstoque);
+  Application.CreateForm(TfrmLubrificacao, frmLubrificacao);
   Application.Run;
 end.

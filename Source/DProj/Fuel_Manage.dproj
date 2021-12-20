@@ -1,10 +1,10 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{CD06233C-FB77-4E72-91F3-58558B67E4EA}</ProjectGuid>
+        <ProjectGuid>{4B45AD58-584E-44A4-877E-B6523810F0D6}</ProjectGuid>
         <MainSource>Fuel_Manage.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
-        <TargetedPlatforms>16</TargetedPlatforms>
+        <TargetedPlatforms>32785</TargetedPlatforms>
         <AppType>Application</AppType>
         <FrameworkType>FMX</FrameworkType>
         <ProjectVersion>19.2</ProjectVersion>
@@ -80,8 +80,8 @@
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
-        <FeatureFilesAdded>SQLite</FeatureFilesAdded>
         <OrientationPortrait>true</OrientationPortrait>
+        <FeatureFilesAdded>SQLite</FeatureFilesAdded>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android)'!=''">
         <VerInfo_Keys>package=com.embarcadero.$(MSBuildProjectName);label=$(MSBuildProjectName);versionCode=1;versionName=1.0.0;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=</VerInfo_Keys>
@@ -151,7 +151,7 @@
     <PropertyGroup Condition="'$(Cfg_2_Android)'!=''">
         <DCC_ExeOutput>D:\Projetos2021\FullManageAndroid\FuelManageAndroid_D4\Deploy\</DCC_ExeOutput>
         <VerInfo_Build>1</VerInfo_Build>
-        <VerInfo_Keys>package=com.embarcadero.$(MSBuildProjectName);label=$(MSBuildProjectName);versionCode=1;versionName=1.0.2;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=</VerInfo_Keys>
+        <VerInfo_Keys>package=com.embarcadero.$(MSBuildProjectName);label=$(MSBuildProjectName);versionCode=1;versionName=1.0.6;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=</VerInfo_Keys>
         <Android_NotificationAccentColor>#000000</Android_NotificationAccentColor>
         <Android_LauncherIcon36>..\..\img\logo\3636.png</Android_LauncherIcon36>
         <Android_LauncherIcon48>..\..\img\logo\4848.png</Android_LauncherIcon48>
@@ -160,7 +160,7 @@
         <Android_LauncherIcon144>..\..\img\logo\144144.png</Android_LauncherIcon144>
         <Android_LauncherIcon192>..\..\img\logo\192192.png</Android_LauncherIcon192>
         <IncludeAndroid_Splash>False</IncludeAndroid_Splash>
-        <Debugger_RunParams>-cleaninstall</Debugger_RunParams>
+        <Debugger_RunParams>clean</Debugger_RunParams>
         <EL_SecureFileSharing>true</EL_SecureFileSharing>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Android64)'!=''">
@@ -169,10 +169,6 @@
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
-        <DCC_ExeOutput>D:\Projetos2021\FuelManageMobile_D4\Deploy\</DCC_ExeOutput>
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Locale>1033</VerInfo_Locale>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
@@ -212,13 +208,15 @@
         <DCCReference Include="..\util\NetworkState.Android.pas"/>
         <DCCReference Include="..\MovEstoque\UMovEstoque.pas">
             <Form>frmMovEstoque</Form>
-            <FormType>fmx</FormType>
         </DCCReference>
         <DCCReference Include="..\util\uFormat.pas"/>
+        <DCCReference Include="..\Lubrificacao\ULubrificacao.pas">
+            <Form>frmLubrificacao</Form>
+        </DCCReference>
         <JavaReference Include="..\..\lib\dw-camera.jar">
             <Disabled/>
         </JavaReference>
-        <None Include="..\..\db\Fueldb.db"/>
+        <None Include="..\..\db\Fuel.db"/>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -246,8 +244,8 @@
             </Delphi.Personality>
             <Platforms>
                 <Platform value="Android">True</Platform>
-                <Platform value="Android64">False</Platform>
-                <Platform value="Win32">False</Platform>
+                <Platform value="Android64">True</Platform>
+                <Platform value="Win32">True</Platform>
                 <Platform value="Win64">False</Platform>
             </Platforms>
             <Deployment Version="3">
@@ -288,6 +286,12 @@
                 <DeployFile LocalName="..\..\Deploy\classes.dex" Configuration="Debug" Class="AndroidClassesDexFile">
                     <Platform Name="Android">
                         <RemoteName>classes.dex</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="..\..\db\Fuel.db" Configuration="Debug" Class="ProjectFile">
+                    <Platform Name="Android">
+                        <RemoteDir>.\assets\internal\</RemoteDir>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
@@ -371,12 +375,6 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="..\..\db\Fueldb.db" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Android">
-                        <RemoteDir>.\assets\internal\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgsqlite3.dylib" Configuration="Debug" Class="File">
                     <Platform Name="OSX32">
                         <RemoteDir>Contents\MacOS\</RemoteDir>
@@ -439,8 +437,20 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
+                <DeployFile LocalName="classes.dex" Configuration="Debug" Class="AndroidClassesDexFile">
+                    <Platform Name="Android">
+                        <RemoteName>classes.dex</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="$(BDS)\bin64\midas.dll" Configuration="Release" Class="File">
                     <Platform Name="Win64">
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="..\..\Deploy\styles-v21.xml" Configuration="Debug" Class="AndroidSplashStylesV21">
+                    <Platform Name="Android">
+                        <RemoteName>styles.xml</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
@@ -487,12 +497,6 @@
                 <DeployFile LocalName="$(BDS)\Redist\osx64\libcgsqlite3.dylib" Configuration="Release" Class="File">
                     <Platform Name="OSX64">
                         <RemoteDir>Contents\MacOS\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="..\..\..\..\FuelManageMobile_D4\Deploy\classes.dex" Configuration="Debug" Class="AndroidClassesDexFile">
-                    <Platform Name="Android">
-                        <RemoteName>classes.dex</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
